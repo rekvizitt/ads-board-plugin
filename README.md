@@ -10,3 +10,4 @@ Standalone wordpress plugin
 - [WordPress documentation](https://developer.wordpress.org/)
 - [PHP Tutorial](https://www.phptutorial.net/)
 - [Figma Tutorials](https://www.youtube.com/results?search_query=figma+ui+ux)
+- [WordPress Plugin Boilerplate Example](https://github.com/DevinVinson/WordPress-Plugin-Boilerplate/tree/master)

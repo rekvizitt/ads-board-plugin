@@ -1,15 +1,18 @@
 <?php
 /**
- * Класс для регистрации всех действий и фильтров
+ * Register all actions and filters for the plugin.
  *
- * @package Ads_Board
+ * Maintain a list of all hooks that are registered throughout
+ * the plugin, and register them with the WordPress API. Call the
+ * run function to execute the list of actions and filters.
+ *
+ * @since      0.0.1
+ * @package    Ads_Board
+ * @subpackage Ads_Board/includes
+ * @author     Vladislav Chekaviy
  */
 
-if (!defined("ABSPATH")) {
-    exit();
-}
-
-class Ads_Board_Loader
+class Ads_Loader
 {
     protected $actions;
     protected $filters;
@@ -50,6 +53,7 @@ class Ads_Board_Loader
             $accepted_args,
         );
     }
+
     private function add(
         $hooks,
         $hook,
@@ -68,6 +72,7 @@ class Ads_Board_Loader
 
         return $hooks;
     }
+
     public function run()
     {
         foreach ($this->filters as $hook) {
