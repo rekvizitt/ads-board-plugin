@@ -1,0 +1,4 @@
+- [ ] Create database
+- [ ] Create figma ui/ux (admin-panel and frontend)
+- [ ] Create backend (at this stage the system is clear for me)
+- [ ] Create frontend
