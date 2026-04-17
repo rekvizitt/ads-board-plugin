@@ -128,10 +128,14 @@ class Ads_Frontend_Query
         return "ORDER BY $order";
     }
 
+    /**
+     * Список категорий для фильтра
+     */
     public function get_categories_list()
     {
-        return $this->wpdb->get_results("
-            SELECT c.id, c.name, COUNT(a.id) as ads_count
+        global $wpdb;
+        return $wpdb->get_results("
+            SELECT c.id, c.name, c.slug, COUNT(a.id) as ads_count
             FROM {$this->table_categories} c
             LEFT JOIN {$this->table_ads} a ON c.id = a.category_id AND a.status = 'active'
             GROUP BY c.id
@@ -151,5 +155,67 @@ class Ads_Frontend_Query
             ) . " назад";
         }
         return date_i18n($format, strtotime($datetime));
+    }
+    /**
+     * Получение данных категории по слаг
+     */
+    public function get_category_by_slug($slug)
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . "ads_categories";
+
+        return $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, name, slug, description FROM {$table} WHERE slug = %s",
+                sanitize_title($slug),
+            ),
+        );
+    }
+
+    /**
+     * Подсчёт объявлений в категории
+     */
+    public function count_ads_in_category($category_id)
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . "ads";
+
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table} WHERE category_id = %d AND status = 'active'",
+                $category_id,
+            ),
+        );
+    }
+    /**
+     * Получение похожих объявлений из той же категории
+     */
+    public function get_related_ads($category_id, $current_ad_id, $limit = 4)
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . "ads";
+        $now = current_time("mysql");
+
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "
+            SELECT id, title, slug, price,
+                (SELECT file_path FROM {$wpdb->prefix}ads_images WHERE ad_id = a.id AND is_primary = 1 LIMIT 1) as primary_image
+            FROM {$table} a
+            WHERE a.category_id = %d
+            AND a.id != %d
+            AND a.status = 'active'
+            AND (a.expires_at IS NULL OR a.expires_at >= %s)
+            AND (a.published_at IS NULL OR a.published_at <= %s)
+            ORDER BY a.is_pinned DESC, a.created_at DESC
+            LIMIT %d
+        ",
+                $category_id,
+                $current_ad_id,
+                $now,
+                $now,
+                $limit,
+            ),
+        );
     }
 }

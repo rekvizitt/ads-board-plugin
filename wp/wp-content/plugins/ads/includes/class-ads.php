@@ -33,9 +33,19 @@ class Ads
     private function load_dependencies()
     {
         require_once ADS_PLUGIN_DIR . "includes/class-ads-loader.php";
+        require_once ADS_PLUGIN_DIR . "includes/class-ads-assets.php";
         require_once ADS_PLUGIN_DIR . "admin/class-ads-admin.php";
         require_once ADS_PLUGIN_DIR . "public/class-ads-public.php";
+        require_once ADS_PLUGIN_DIR . "includes/class-ads-shortcodes.php";
         $this->loader = new Ads_Loader();
+
+        $assets = new Ads_Assets(
+            $this->get_plugin_name(),
+            $this->get_version(),
+        );
+        $assets->register();
+
+        new Ads_Shortcodes();
     }
     private function define_admin_hooks()
     {
