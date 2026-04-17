@@ -66,77 +66,19 @@ if (!defined("ABSPATH")) {
             ?>
         </div>
 
-        <p class="submit" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+        <p class="submit ads-submit-actions">
             <?php submit_button(
                 "Сохранить изменения",
                 "primary",
                 "submit",
                 false,
-                ["style" => "padding: 10px 20px;"],
             ); ?>
             <a href="<?php echo admin_url(
                 "admin.php?page=ads-board",
-            ); ?>" class="button" style="padding: 10px 20px;">Отмена</a>
+            ); ?>" class="button ads-cancel-button">Отмена</a>
         </p>
     </form>
 </div>
-
-<style>
-.ads-board-settings .ads-settings-tabs {
-    display: flex;
-    gap: 5px;
-    margin: 20px 0 0;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 0;
-}
-.ads-board-settings .ads-tab-button {
-    padding: 10px 20px;
-    background: #f6f7f7;
-    border: 1px solid #ddd;
-    border-bottom: none;
-    border-radius: 4px 4px 0 0;
-    cursor: pointer;
-    font-size: 14px;
-}
-.ads-board-settings .ads-tab-button.active {
-    background: #fff;
-    border-color: #ddd;
-    border-bottom: 1px solid #fff;
-    font-weight: 500;
-    margin-bottom: -1px;
-}
-.ads-board-settings .settings-section {
-    display: none;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 0 4px 4px 4px;
-    padding: 20px;
-}
-.ads-board-settings .settings-section.active {
-    display: block;
-}
-.ads-board-settings .form-table th {
-    padding: 15px 10px 15px 0;
-    width: 250px;
-    font-weight: 500;
-}
-.ads-board-settings .form-table td {
-    padding: 15px 0;
-}
-.ads-board-settings .description {
-    margin: 5px 0 0;
-    color: #666;
-}
-@media screen and (max-width: 782px) {
-    .ads-board-settings .ads-settings-tabs {
-        flex-wrap: wrap;
-    }
-    .ads-board-settings .ads-tab-button {
-        flex: 1 1 auto;
-        text-align: center;
-    }
-}
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

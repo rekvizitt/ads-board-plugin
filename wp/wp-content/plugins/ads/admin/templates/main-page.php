@@ -1,156 +1,132 @@
 <?php
 /**
- * Template: Main Page - Список объявлений
+ * Template: Ads List (Admin)
  * @package Ads_Board
- *
- * @var array $data {
- *     @type array  $items          Список объявлений
- *     @type int    $total_items    Всего записей
- *     @type int    $total_pages    Всего страниц
- *     @type int    $current_page   Текущая страница
- *     @type array  $filters        Параметры фильтрации
- *     @type array  $categories     Список категорий
- *     @type string $base_url       Базовый URL для пагинации
- * }
  */
 
 if (!defined("ABSPATH")) {
     exit();
 }
 
-// Данные уже подготовлены контроллером, здесь только вывод
-$items = $data["items"];
+$items = $data["items"] ?? [];
 $pagination = [
-    "total" => $data["total_pages"],
-    "current" => $data["current_page"],
-    "base_url" => $data["base_url"],
+    "total" => $data["total_pages"] ?? 1,
+    "current" => $data["current_page"] ?? 1,
+    "base_url" =>
+        $data["base_url"] ?? admin_url("admin.php?page=ads-board&paged=%#%"),
 ];
-$filters = $data["filters"];
-$categories = $data["categories"];
+$filters = $data["filters"] ?? [];
+$categories = $data["categories"] ?? [];
 ?>
 
-<div class="wrap ads-board-page">
-    <h1 class="wp-heading-inline">
-        📋 <?php _e("Все объявления", "ads-board"); ?>
-        <span class="count">(<?php echo (int) $data["total_items"]; ?>)</span>
-    </h1>
-
+<div class="wrap ads-list-wrap">
+    <h1 class="wp-heading-inline">Все объявления</h1>
     <a href="<?php echo admin_url(
         "admin.php?page=ads-add-new",
-    ); ?>" class="page-title-action">
-        ➕ <?php _e("Добавить новое", "ads-board"); ?>
-    </a>
+    ); ?>" class="page-title-action">Добавить новое</a>
 
     <!-- Фильтры -->
-    <form method="get" class="ads-filters" style="margin: 20px 0; padding: 15px; background: #fff; border-left: 4px solid #0073aa;">
+    <form method="get" class="ads-filters-form">
         <input type="hidden" name="page" value="ads-board">
-        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-            <input type="search" name="s" value="<?php echo esc_attr(
-                $filters["search"],
-            ); ?>"
-                   placeholder="🔍 <?php esc_attr_e(
-                       "Поиск...",
-                       "ads-board",
-                   ); ?>"
-                   style="min-width: 250px; height: 32px; padding: 0 10px;">
 
-            <select name="status" style="height: 32px; padding: 0 10px;">
-                <option value="all" <?php selected(
-                    $filters["status"],
-                    "all",
-                ); ?>><?php _e("Все статусы", "ads-board"); ?></option>
-                <option value="active" <?php selected(
-                    $filters["status"],
-                    "active",
-                ); ?>>✅ <?php _e("Активные", "ads-board"); ?></option>
-                <option value="draft" <?php selected(
-                    $filters["status"],
-                    "draft",
-                ); ?>>📝 <?php _e("Черновики", "ads-board"); ?></option>
-                <option value="expired" <?php selected(
-                    $filters["status"],
-                    "expired",
-                ); ?>>⏰ <?php _e("Истёкшие", "ads-board"); ?></option>
-                <option value="sold" <?php selected(
-                    $filters["status"],
-                    "sold",
-                ); ?>>💰 <?php _e("Продано", "ads-board"); ?></option>
-            </select>
+        <div class="ads-filters-row">
+            <div class="ads-filter-field">
+                <label for="ads_search">Поиск</label>
+                <input type="search" name="s" id="ads_search"
+                       value="<?php echo esc_attr($filters["search"] ?? ""); ?>"
+                       placeholder="По заголовку, описанию, автору...">
+            </div>
 
-            <select name="category" style="height: 32px; padding: 0 10px;">
-                <option value="0"><?php _e(
-                    "Все категории",
-                    "ads-board",
-                ); ?></option>
-                <?php foreach ($categories as $cat): ?>
-                    <option value="<?php echo esc_attr(
-                        $cat->id,
-                    ); ?>" <?php selected($filters["category"], $cat->id); ?>>
-                        <?php echo esc_html($cat->name); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
+            <div class="ads-filter-field">
+                <label for="ads_status">Статус</label>
+                <select name="status" id="ads_status">
+                    <option value="all" <?php selected(
+                        $filters["status"] ?? "",
+                        "all",
+                    ); ?>>Все статусы</option>
+                    <option value="active" <?php selected(
+                        $filters["status"] ?? "",
+                        "active",
+                    ); ?>>Опубликовано</option>
+                    <option value="draft" <?php selected(
+                        $filters["status"] ?? "",
+                        "draft",
+                    ); ?>>Черновик</option>
+                    <option value="sold" <?php selected(
+                        $filters["status"] ?? "",
+                        "sold",
+                    ); ?>>Продано</option>
+                    <option value="expired" <?php selected(
+                        $filters["status"] ?? "",
+                        "expired",
+                    ); ?>>Истёкшее</option>
+                </select>
+            </div>
 
-            <button type="submit" class="button"><?php _e(
-                "Фильтровать",
-                "ads-board",
-            ); ?></button>
-            <?php if (
-                $filters["search"] ||
-                $filters["status"] !== "all" ||
-                $filters["category"]
-            ): ?>
-                <a href="<?php echo admin_url(
-                    "admin.php?page=ads-board",
-                ); ?>" class="button"><?php _e("Сбросить", "ads-board"); ?></a>
-            <?php endif; ?>
+            <div class="ads-filter-field">
+                <label for="ads_category">Категория</label>
+                <select name="category" id="ads_category">
+                    <option value="0">Все категории</option>
+                    <?php foreach ($categories as $cat): ?>
+                        <option value="<?php echo esc_attr($cat->id); ?>"
+                                <?php selected(
+                                    $filters["category"] ?? 0,
+                                    $cat->id,
+                                ); ?>>
+                            <?php echo esc_html($cat->name); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="ads-filter-actions">
+                <button type="submit" class="button">Применить</button>
+                <?php if (
+                    !empty($filters["search"]) ||
+                    ($filters["status"] ?? "") !== "all" ||
+                    ($filters["category"] ?? 0) !== 0
+                ): ?>
+                    <a href="<?php echo admin_url(
+                        "admin.php?page=ads-board",
+                    ); ?>" class="button">Сбросить</a>
+                <?php endif; ?>
+            </div>
         </div>
     </form>
 
-    <!-- Таблица -->
+    <?php settings_errors("ads_board"); ?>
+
+    <!-- Массовые действия -->
     <form method="post" id="ads-list-form">
         <?php wp_nonce_field("ads_bulk_action_nonce", "ads_bulk_nonce"); ?>
 
         <div class="tablenav top">
             <div class="alignleft actions bulkactions">
-                <select name="ads_bulk_action">
-                    <option value=""><?php _e(
-                        "— Массовые действия —",
-                        "ads-board",
-                    ); ?></option>
-                    <option value="delete">🗑️ <?php _e(
-                        "Удалить",
-                        "ads-board",
-                    ); ?></option>
-                    <option value="activate">✅ <?php _e(
-                        "Активировать",
-                        "ads-board",
-                    ); ?></option>
-                    <option value="deactivate">📝 <?php _e(
-                        "Снять с публикации",
-                        "ads-board",
-                    ); ?></option>
+                <label for="bulk-action-selector-top" class="screen-reader-text">Массовые действия</label>
+                <select name="ads_bulk_action" id="bulk-action-selector-top">
+                    <option value="">— Выбрать действие —</option>
+                    <option value="delete">Удалить</option>
+                    <option value="activate">Опубликовать</option>
+                    <option value="deactivate">Снять с публикации</option>
                 </select>
-                <button type="submit" class="button action"><?php _e(
-                    "Применить",
-                    "ads-board",
-                ); ?></button>
+                <button type="submit" class="button action">Применить</button>
             </div>
+
             <?php if ($pagination["total"] > 1): ?>
                 <div class="tablenav-pages">
                     <span class="displaying-num">
                         <?php printf(
-                            _n(
-                                "Показано %d элемент",
-                                "Показано %d элементов",
-                                count($items),
-                                "ads-board",
+                            "Показано %d–%d из %d",
+                            ($pagination["current"] - 1) * 20 + 1,
+                            min(
+                                $pagination["current"] * 20,
+                                $data["total_items"] ?? 0,
                             ),
-                            count($items),
+                            $data["total_items"] ?? 0,
                         ); ?>
                     </span>
                     <?php echo paginate_links([
-                        "base" => $pagination["base_url"] . "%#%",
+                        "base" => $pagination["base_url"],
                         "format" => "",
                         "prev_text" => "«",
                         "next_text" => "»",
@@ -158,53 +134,48 @@ $categories = $data["categories"];
                         "current" => $pagination["current"],
                         "type" => "list",
                         "add_args" => array_filter([
-                            "s" => $filters["search"] ?: null,
+                            "s" => $filters["search"] ?? null,
                             "status" =>
-                                $filters["status"] !== "all"
-                                    ? $filters["status"]
+                                ($filters["status"] ?? "") !== "all"
+                                    ? $filters["status"] ?? null
                                     : null,
-                            "category" => $filters["category"] ?: null,
+                            "category" =>
+                                $filters["category"] ?? 0
+                                    ? $filters["category"] ?? null
+                                    : null,
                         ]),
                     ]); ?>
                 </div>
             <?php endif; ?>
         </div>
 
-        <table class="wp-list-table widefat fixed striped">
+        <!-- Таблица -->
+        <table class="wp-list-table widefat fixed striped ads-ads-table">
             <thead>
                 <tr>
                     <td class="manage-column column-cb check-column">
                         <input type="checkbox" id="ads-select-all">
                     </td>
-                    <th scope="col" style="width: 50px;">ID</th>
-                    <th scope="col"><?php _e("Название", "ads-board"); ?></th>
-                    <th scope="col"><?php _e("Категория", "ads-board"); ?></th>
-                    <th scope="col"><?php _e("Цена", "ads-board"); ?></th>
-                    <th scope="col"><?php _e("Автор", "ads-board"); ?></th>
-                    <th scope="col"><?php _e("Статус", "ads-board"); ?></th>
-                    <th scope="col"><?php _e("Просмотры", "ads-board"); ?></th>
-                    <th scope="col"><?php _e("Дата", "ads-board"); ?></th>
-                    <th scope="col" style="width: 120px;"><?php _e(
-                        "Действия",
-                        "ads-board",
-                    ); ?></th>
+                    <th scope="col" class="ads-col-id">ID</th>
+                    <th scope="col">Заголовок</th>
+                    <th scope="col">Категория</th>
+                    <th scope="col">Цена</th>
+                    <th scope="col">Автор</th>
+                    <th scope="col">Статус</th>
+                    <th scope="col">Просмотры</th>
+                    <th scope="col">Дата</th>
+                    <th scope="col" class="ads-col-actions">Действия</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($items)): ?>
                     <tr>
-                        <td colspan="10" class="text-center" style="padding: 40px; text-align: center;">
-                            <p>😕 <?php _e(
-                                "Объявления не найдены.",
-                                "ads-board",
-                            ); ?></p>
+                        <td colspan="10" class="ads-empty-state-cell">
+                            <p>Объявления не найдены.</p>
                             <a href="<?php echo admin_url(
                                 "admin.php?page=ads-add-new",
                             ); ?>" class="button button-primary">
-                                ➕ <?php _e(
-                                    "Создать первое объявление",
-                                    "ads-board",
-                                ); ?>
+                                Добавить первое объявление
                             </a>
                         </td>
                     </tr>
@@ -221,9 +192,27 @@ $categories = $data["categories"];
                             ),
                             "delete_ad_" . $ad->id,
                         );
-                        $status_config = Ads_Helpers::get_status_config(
-                            $ad->status,
-                        );
+                        $status_config = [
+                            "active" => [
+                                "label" => "Опубликовано",
+                                "class" => "status-active",
+                            ],
+                            "draft" => [
+                                "label" => "Черновик",
+                                "class" => "status-draft",
+                            ],
+                            "sold" => [
+                                "label" => "Продано",
+                                "class" => "status-sold",
+                            ],
+                            "expired" => [
+                                "label" => "Истёкло",
+                                "class" => "status-expired",
+                            ],
+                        ][$ad->status] ?? [
+                            "label" => $ad->status,
+                            "class" => "",
+                        ];
                         ?>
                     <tr>
                         <th scope="row" class="check-column">
@@ -231,42 +220,55 @@ $categories = $data["categories"];
                                 $ad->id,
                             ); ?>">
                         </th>
-                        <td><?php echo (int) $ad->id; ?></td>
+                        <td class="ads-col-id"><?php echo (int) $ad->id; ?></td>
                         <td>
-                            <strong><a href="<?php echo esc_url(
-                                $edit_link,
-                            ); ?>"><?php echo esc_html(
-    mb_strimwidth($ad->title, 0, 50, "…"),
-); ?></a></strong>
+                            <strong>
+                                <a href="<?php echo esc_url($edit_link); ?>">
+                                    <?php echo esc_html(
+                                        mb_strimwidth($ad->title, 0, 50, "…"),
+                                    ); ?>
+                                </a>
+                            </strong>
                             <?php if ($ad->is_pinned): ?>
-                                <span class="dashicons dashicons-flag" style="color: #f0ad4e;" title="<?php esc_attr_e(
-                                    "Закреплено",
-                                    "ads-board",
-                                ); ?>"></span>
+                                <span class="ads-badge" title="Закреплено">★</span>
+                            <?php endif; ?>
+                            <?php if ($ad->is_important): ?>
+                                <span class="ads-badge ads-badge-important" title="Важное">●</span>
                             <?php endif; ?>
                         </td>
                         <td><?php echo esc_html(
                             $ad->category_name ?: "—",
                         ); ?></td>
-                        <td><?php echo $ad->price
-                            ? "<strong>" .
-                                number_format_i18n($ad->price, 2) .
-                                " ₽</strong>"
-                            : '<span style="color:#777">—</span>'; ?></td>
                         <td>
-                            <?php echo esc_html($ad->author_name); ?><br>
-                            <small style="color:#666"><?php echo esc_html(
-                                $ad->author_email ?: $ad->author_phone ?: "",
-                            ); ?></small>
+                            <?php if ($ad->price): ?>
+                                <strong>$<?php echo number_format_i18n(
+                                    $ad->price,
+                                    2,
+                                ); ?></strong>
+                            <?php else: ?>
+                                <span class="text-muted">—</span>
+                            <?php endif; ?>
                         </td>
                         <td>
-                            <span class="ads-status status-<?php echo esc_attr(
-                                $ad->status,
+                            <?php echo esc_html($ad->author_name); ?>
+                            <?php if ($ad->author_email): ?>
+                                <br><small class="text-muted"><?php echo esc_html(
+                                    $ad->author_email,
+                                ); ?></small>
+                            <?php elseif ($ad->author_phone): ?>
+                                <br><small class="text-muted"><?php echo esc_html(
+                                    $ad->author_phone,
+                                ); ?></small>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <span class="ads-status <?php echo esc_attr(
+                                $status_config["class"],
                             ); ?>">
                                 <?php echo esc_html($status_config["label"]); ?>
                             </span>
                         </td>
-                        <td style="text-align:center"><?php echo number_format_i18n(
+                        <td class="ads-text-center"><?php echo number_format_i18n(
                             $ad->views_count,
                         ); ?></td>
                         <td>
@@ -279,30 +281,24 @@ $categories = $data["categories"];
                                     $ad->expires_at &&
                                     $ad->status === "active"
                                 ): ?>
-                                    <br><span style="color:#666"><?php _e(
-                                        "до",
-                                        "ads-board",
-                                    ); ?> <?php echo date_i18n(
-     "d.m.Y",
-     strtotime($ad->expires_at),
- ); ?></span>
+                                    <br><span class="text-muted">до <?php echo date_i18n(
+                                        "d.m.Y",
+                                        strtotime($ad->expires_at),
+                                    ); ?></span>
                                 <?php endif; ?>
                             </small>
                         </td>
-                        <td>
+                        <td class="ads-col-actions">
                             <div class="row-actions">
                                 <a href="<?php echo esc_url(
                                     $edit_link,
-                                ); ?>">✏️ <?php _e(
-    "Ред.",
-    "ads-board",
-); ?></a> |
-                                <a href="<?php echo esc_url(
-                                    $delete_link,
-                                ); ?>" onclick="return confirm('<?php echo esc_js(
-    sprintf(__("Удалить «%s»?", "ads-board"), $ad->title),
-); ?>');" style="color:#dc3232">
-                                    🗑️ <?php _e("Удалить", "ads-board"); ?>
+                                ); ?>">Редактировать</a> |
+                                <a href="<?php echo esc_url($delete_link); ?>"
+                                   onclick="return confirm('Удалить объявление «<?php echo esc_js(
+                                       $ad->title,
+                                   ); ?>»?');"
+                                   class="delete">
+                                    Удалить
                                 </a>
                             </div>
                         </td>
@@ -313,11 +309,21 @@ $categories = $data["categories"];
             </tbody>
         </table>
 
+        <!-- Пагинация внизу -->
         <?php if ($pagination["total"] > 1): ?>
             <div class="tablenav bottom">
+                <div class="alignleft actions bulkactions">
+                    <select name="ads_bulk_action">
+                        <option value="">— Выбрать действие —</option>
+                        <option value="delete">Удалить</option>
+                        <option value="activate">Опубликовать</option>
+                        <option value="deactivate">Снять с публикации</option>
+                    </select>
+                    <button type="submit" class="button action">Применить</button>
+                </div>
                 <div class="tablenav-pages">
                     <?php echo paginate_links([
-                        "base" => $pagination["base_url"] . "%#%",
+                        "base" => $pagination["base_url"],
                         "format" => "",
                         "prev_text" => "«",
                         "next_text" => "»",
@@ -325,12 +331,15 @@ $categories = $data["categories"];
                         "current" => $pagination["current"],
                         "type" => "list",
                         "add_args" => array_filter([
-                            "s" => $filters["search"] ?: null,
+                            "s" => $filters["search"] ?? null,
                             "status" =>
-                                $filters["status"] !== "all"
-                                    ? $filters["status"]
+                                ($filters["status"] ?? "") !== "all"
+                                    ? $filters["status"] ?? null
                                     : null,
-                            "category" => $filters["category"] ?: null,
+                            "category" =>
+                                $filters["category"] ?? 0
+                                    ? $filters["category"] ?? null
+                                    : null,
                         ]),
                     ]); ?>
                 </div>
@@ -338,3 +347,29 @@ $categories = $data["categories"];
         <?php endif; ?>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Выбрать все / снять выделение
+    const selectAll = document.getElementById('ads-select-all');
+    const checkboxes = document.querySelectorAll('input[name="ads_ids[]"]');
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+    }
+
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            if (!this.checked && selectAll) {
+                selectAll.checked = false;
+            }
+            const allChecked = [...checkboxes].every(c => c.checked);
+            if (allChecked && selectAll) {
+                selectAll.checked = true;
+            }
+        });
+    });
+});
+</script>

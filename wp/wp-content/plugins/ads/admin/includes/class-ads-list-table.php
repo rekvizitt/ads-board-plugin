@@ -64,13 +64,17 @@ class Ads_List_Table
      */
     private function build_where_clause($filters, &$params)
     {
+        global $wpdb;
         $where = [];
 
         if ($filters["search"]) {
             $where[] =
-                "(title LIKE %s OR description LIKE %s OR author_name LIKE %s OR author_email LIKE %s)";
-            $like = "%" . $GLOBALS["wpdb"]->esc_like($filters["search"]) . "%";
-            $params = array_merge($params, [$like, $like, $like, $like]);
+                "(a.title LIKE %s OR a.description LIKE %s OR a.author_name LIKE %s OR a.author_email LIKE %s)";
+            $like = "%" . $wpdb->esc_like($filters["search"]) . "%";
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
         }
 
         if ($filters["status"] !== "all") {

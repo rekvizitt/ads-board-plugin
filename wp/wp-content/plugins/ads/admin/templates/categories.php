@@ -1,18 +1,7 @@
 <?php
 /**
- * Template: Categories Management
+ * Template: Categories Management (Admin)
  * @package Ads_Board
- *
- * @var array $data {
- *     @type array  $items          Список категорий
- *     @type int    $total_items    Всего записей
- *     @type int    $total_pages    Всего страниц
- *     @type int    $current_page   Текущая страница
- *     @type string $search         Поисковый запрос
- *     @type object $edit_item      Категория для редактирования (или null)
- *     @type array  $errors         Ошибки валидации
- *     @type string $base_url       Базовый URL для пагинации
- * }
  */
 
 if (!defined("ABSPATH")) {
@@ -22,7 +11,8 @@ if (!defined("ABSPATH")) {
 $items = $data["items"] ?? [];
 $edit = $data["edit_item"] ?? null;
 $errors = $data["errors"] ?? [];
-$old = $data["old_input"] ?? []; // Для сохранения значений при ошибке
+$old = $data["old_input"] ?? [];
+$search = $data["search"] ?? "";
 $pagination = [
     "total" => $data["total_pages"] ?? 1,
     "current" => $data["current_page"] ?? 1,
@@ -30,325 +20,217 @@ $pagination = [
         $data["base_url"] ??
         admin_url("admin.php?page=ads-categories&paged=%#%"),
 ];
-$search = $data["search"] ?? "";
+
+// Функция получения значения
+function ads_cat_get_field($key, $default = "")
+{
+    global $old, $edit;
+    if (isset($old[$key]) && $old[$key] !== "") {
+        return $old[$key];
+    }
+    if ($edit && property_exists($edit, $key) && $edit->$key !== null) {
+        return $edit->$key;
+    }
+    return $default;
+}
 ?>
 
-<div class="wrap ads-board-categories">
-    <h1 class="wp-heading-inline">
-        📁 <?php _e("Категории объявлений", "ads-board"); ?>
-        <span class="count">(<?php echo (int) ($data["total_items"] ??
-            0); ?>)</span>
-    </h1>
+<div class="wrap ads-categories-wrap">
+    <h1 class="wp-heading-inline">Категории объявлений</h1>
 
     <?php if (!$edit): ?>
-        <button type="button" class="page-title-action" id="ads-show-add-form">
-            ➕ <?php _e("Добавить категорию", "ads-board"); ?>
-        </button>
+        <button type="button" class="page-title-action" id="ads-show-add-form">Добавить категорию</button>
     <?php else: ?>
-        <a href="<?php echo esc_url(
-            admin_url("admin.php?page=ads-categories"),
-        ); ?>" class="page-title-action">
-            ← <?php _e("Вернуться к списку", "ads-board"); ?>
-        </a>
+        <a href="<?php echo admin_url(
+            "admin.php?page=ads-categories",
+        ); ?>" class="page-title-action">Назад к списку</a>
     <?php endif; ?>
 
-    <!-- 🔔 Уведомления -->
-    <?php // 1. Из редиректа
-    if (!empty($data["notice"])): ?>
-        <div class="notice notice-<?php echo esc_attr(
-            $data["notice"]["type"],
-        ); ?> is-dismissible">
-            <p><?php echo esc_html($data["notice"]["msg"]); ?></p>
-        </div>
-    <?php
-        // 2. Из settings_errors (для ошибок валидации без редиректа, если нужно)
+    <?php settings_errors("ads_categories"); ?>
 
-        else:settings_errors("ads_categories");endif; ?>
-
-    <!-- ➕ Форма добавления (скрыта по умолчанию) -->
+    <!-- Форма добавления -->
     <?php if (!$edit): ?>
-    <div id="ads-add-category-form" class="postbox" style="display: none; margin-top: 20px;">
-        <h2 class="hndle"><span>➕ <?php _e(
-            "Новая категория",
-            "ads-board",
-        ); ?></span></h2>
-        <div class="inside">
-            <form method="post" action="">
-                <?php wp_nonce_field(
-                    "ads_categories_nonce",
-                    "ads_categories_nonce_field",
-                ); ?>
-                <input type="hidden" name="ads_action" value="create">
+    <div id="ads-add-category-form" class="ads-form-panel ads-hidden">
+        <h2>Новая категория</h2>
+        <form method="post">
+            <?php wp_nonce_field(
+                "ads_categories_nonce",
+                "ads_categories_nonce_field",
+            ); ?>
+            <input type="hidden" name="ads_action" value="create">
 
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><label for="cat_name"><?php _e(
-                            "Название",
-                            "ads-board",
-                        ); ?> <span class="required">*</span></label></th>
-                        <td>
-                            <input type="text" name="name" id="cat_name" class="regular-text"
-                                   value="<?php echo esc_attr(
-                                       $old["name"] ?? "",
-                                   ); ?>" required>
-                            <?php if (isset($errors["name"])): ?>
-                                <p class="description" style="color: #dc3232;"><?php echo esc_html(
-                                    $errors["name"],
-                                ); ?></p>
-                            <?php endif; ?>
-                            <p class="description"><?php _e(
-                                "Например: Недвижимость, Транспорт",
-                                "ads-board",
-                            ); ?></p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="cat_slug"><?php _e(
-                            "Ярлык (slug)",
-                            "ads-board",
-                        ); ?></label></th>
-                        <td>
-                            <input type="text" name="slug" id="cat_slug" class="regular-text code"
-                                   value="<?php echo esc_attr(
-                                       $old["slug"] ?? "",
-                                   ); ?>"
-                                   placeholder="<?php esc_attr_e(
-                                       "Автогенерация из названия",
-                                       "ads-board",
-                                   ); ?>">
-                            <?php if (isset($errors["slug"])): ?>
-                                <p class="description" style="color: #dc3232;"><?php echo esc_html(
-                                    $errors["slug"],
-                                ); ?></p>
-                            <?php endif; ?>
-                            <p class="description"><?php _e(
-                                "Латиницей, без пробелов. Например: real-estate",
-                                "ads-board",
-                            ); ?></p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="cat_desc"><?php _e(
-                            "Описание",
-                            "ads-board",
-                        ); ?></label></th>
-                        <td>
-                            <textarea name="description" id="cat_desc" class="large-text" rows="3"><?php echo esc_textarea(
-                                $old["description"] ?? "",
-                            ); ?></textarea>
-                            <?php if (isset($errors["description"])): ?>
-                                <p class="description" style="color: #dc3232;"><?php echo esc_html(
-                                    $errors["description"],
-                                ); ?></p>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="cat_sort"><?php _e(
-                            "Порядок сортировки",
-                            "ads-board",
-                        ); ?></label></th>
-                        <td>
-                            <input type="number" name="sort_order" id="cat_sort" class="small-text"
-                                   value="<?php echo esc_attr(
-                                       $old["sort_order"] ?? "0",
-                                   ); ?>" min="0">
-                            <p class="description"><?php _e(
-                                "Меньшее число = выше в списке",
-                                "ads-board",
-                            ); ?></p>
-                        </td>
-                    </tr>
-                </table>
+            <div class="ads-form-grid">
+                <div class="ads-form-field">
+                    <label for="cat_name">Название <span class="ads-required">*</span></label>
+                    <input type="text" name="name" id="cat_name" class="regular-text"
+                           value="<?php echo esc_attr(
+                               ads_cat_get_field("name"),
+                           ); ?>" required>
+                    <?php if (isset($errors["name"])): ?>
+                        <span class="ads-field-error"><?php echo esc_html(
+                            $errors["name"],
+                        ); ?></span>
+                    <?php endif; ?>
+                    <p class="ads-field-help">Например: Недвижимость, Транспорт</p>
+                </div>
 
-                <p class="submit">
-                    <button type="submit" class="button button-primary"><?php _e(
-                        "Создать категорию",
-                        "ads-board",
-                    ); ?></button>
-                    <button type="button" class="button" id="ads-cancel-add"><?php _e(
-                        "Отмена",
-                        "ads-board",
-                    ); ?></button>
-                </p>
-            </form>
-        </div>
+                <div class="ads-form-field">
+                    <label for="cat_slug">Ярлык (slug)</label>
+                    <input type="text" name="slug" id="cat_slug" class="regular-text code"
+                           value="<?php echo esc_attr(
+                               ads_cat_get_field("slug"),
+                           ); ?>"
+                           placeholder="Автогенерация">
+                    <?php if (isset($errors["slug"])): ?>
+                        <span class="ads-field-error"><?php echo esc_html(
+                            $errors["slug"],
+                        ); ?></span>
+                    <?php endif; ?>
+                    <p class="ads-field-help">Латиницей, без пробелов. Например: real-estate</p>
+                </div>
+
+                <div class="ads-form-field">
+                    <label for="cat_desc">Описание</label>
+                    <textarea name="description" id="cat_desc" class="large-text" rows="3"><?php echo esc_textarea(
+                        ads_cat_get_field("description"),
+                    ); ?></textarea>
+                    <?php if (isset($errors["description"])): ?>
+                        <span class="ads-field-error"><?php echo esc_html(
+                            $errors["description"],
+                        ); ?></span>
+                    <?php endif; ?>
+                </div>
+
+                <div class="ads-form-field">
+                    <label for="cat_sort">Порядок сортировки</label>
+                    <input type="number" name="sort_order" id="cat_sort" class="small-text"
+                           value="<?php echo esc_attr(
+                               ads_cat_get_field("sort_order", "0"),
+                           ); ?>" min="0">
+                    <p class="ads-field-help">Меньшее число = выше в списке</p>
+                </div>
+            </div>
+
+            <p class="ads-form-actions">
+                <button type="submit" class="button button-primary">Создать категорию</button>
+                <button type="button" class="button" id="ads-cancel-add">Отмена</button>
+            </p>
+        </form>
     </div>
     <?php endif; ?>
 
-    <!-- ✏️ Форма редактирования (показывается если есть $edit) -->
+    <!-- Форма редактирования -->
     <?php if ($edit): ?>
-    <div class="postbox" style="margin-top: 20px;">
-        <h2 class="hndle"><span>✏️ <?php _e(
-            "Редактирование категории",
-            "ads-board",
-        ); ?></span></h2>
-        <div class="inside">
-            <form method="post" action="">
-                <?php wp_nonce_field(
-                    "ads_categories_nonce",
-                    "ads_categories_nonce_field",
-                ); ?>
-                <input type="hidden" name="ads_action" value="update">
-                <input type="hidden" name="id" value="<?php echo esc_attr(
-                    $edit->id,
-                ); ?>">
+    <div class="ads-form-panel">
+        <h2>Редактирование категории</h2>
+        <form method="post">
+            <?php wp_nonce_field(
+                "ads_categories_nonce",
+                "ads_categories_nonce_field",
+            ); ?>
+            <input type="hidden" name="ads_action" value="update">
+            <input type="hidden" name="id" value="<?php echo esc_attr(
+                $edit->id,
+            ); ?>">
 
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><label for="cat_name"><?php _e(
-                            "Название",
-                            "ads-board",
-                        ); ?> <span class="required">*</span></label></th>
-                        <td>
-                            <input type="text" name="name" id="cat_name" class="regular-text"
-                                   value="<?php echo esc_attr(
-                                       $old["name"] ?? ($edit->name ?? ""),
-                                   ); ?>" required>
-                            <?php if (isset($errors["name"])): ?>
-                                <p class="description" style="color: #dc3232;"><?php echo esc_html(
-                                    $errors["name"],
-                                ); ?></p>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="cat_slug"><?php _e(
-                            "Ярлык (slug)",
-                            "ads-board",
-                        ); ?></label></th>
-                        <td>
-                            <input type="text" name="slug" id="cat_slug" class="regular-text code"
-                                   value="<?php echo esc_attr(
-                                       $old["slug"] ?? ($edit->slug ?? ""),
-                                   ); ?>">
-                            <?php if (isset($errors["slug"])): ?>
-                                <p class="description" style="color: #dc3232;"><?php echo esc_html(
-                                    $errors["slug"],
-                                ); ?></p>
-                            <?php endif; ?>
-                            <p class="description"><?php _e(
-                                "Латиницей, без пробелов",
-                                "ads-board",
-                            ); ?></p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="cat_desc"><?php _e(
-                            "Описание",
-                            "ads-board",
-                        ); ?></label></th>
-                        <td>
-                            <textarea name="description" id="cat_desc" class="large-text" rows="3"><?php echo esc_textarea(
-                                $old["description"] ??
-                                    ($edit->description ?? ""),
-                            ); ?></textarea>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="cat_sort"><?php _e(
-                            "Порядок сортировки",
-                            "ads-board",
-                        ); ?></label></th>
-                        <td>
-                            <input type="number" name="sort_order" id="cat_sort" class="small-text"
-                                   value="<?php echo esc_attr(
-                                       $old["sort_order"] ??
-                                           ($edit->sort_order ?? "0"),
-                                   ); ?>" min="0">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><?php _e(
-                            "Статистика",
-                            "ads-board",
-                        ); ?></th>
-                        <td>
-                            <p class="description">
-                                <?php
-                                global $wpdb;
-                                $ads_count = $wpdb->get_var(
-                                    $wpdb->prepare(
-                                        "SELECT COUNT(*) FROM {$wpdb->prefix}ads WHERE category_id = %d",
-                                        $edit->id,
-                                    ),
-                                );
-                                printf(
-                                    _n(
-                                        "В категории %d объявление",
-                                        "В категории %d объявлений",
-                                        $ads_count,
-                                        "ads-board",
-                                    ),
-                                    $ads_count,
-                                );
-                                ?>
-                            </p>
-                        </td>
-                    </tr>
-                </table>
+            <div class="ads-form-grid">
+                <div class="ads-form-field">
+                    <label for="cat_name">Название <span class="ads-required">*</span></label>
+                    <input type="text" name="name" id="cat_name" class="regular-text"
+                           value="<?php echo esc_attr(
+                               ads_cat_get_field("name"),
+                           ); ?>" required>
+                    <?php if (isset($errors["name"])): ?>
+                        <span class="ads-field-error"><?php echo esc_html(
+                            $errors["name"],
+                        ); ?></span>
+                    <?php endif; ?>
+                </div>
 
-                <p class="submit">
-                    <button type="submit" class="button button-primary"><?php _e(
-                        "Сохранить изменения",
-                        "ads-board",
-                    ); ?></button>
-                    <a href="<?php echo esc_url(
-                        admin_url("admin.php?page=ads-categories"),
-                    ); ?>" class="button"><?php _e(
-    "Отмена",
-    "ads-board",
-); ?></a>
-                </p>
-            </form>
-        </div>
+                <div class="ads-form-field">
+                    <label for="cat_slug">Ярлык (slug)</label>
+                    <input type="text" name="slug" id="cat_slug" class="regular-text code"
+                           value="<?php echo esc_attr(
+                               ads_cat_get_field("slug"),
+                           ); ?>">
+                    <?php if (isset($errors["slug"])): ?>
+                        <span class="ads-field-error"><?php echo esc_html(
+                            $errors["slug"],
+                        ); ?></span>
+                    <?php endif; ?>
+                </div>
+
+                <div class="ads-form-field">
+                    <label for="cat_desc">Описание</label>
+                    <textarea name="description" id="cat_desc" class="large-text" rows="3"><?php echo esc_textarea(
+                        ads_cat_get_field("description"),
+                    ); ?></textarea>
+                </div>
+
+                <div class="ads-form-field">
+                    <label for="cat_sort">Порядок сортировки</label>
+                    <input type="number" name="sort_order" id="cat_sort" class="small-text"
+                           value="<?php echo esc_attr(
+                               ads_cat_get_field("sort_order", "0"),
+                           ); ?>" min="0">
+                </div>
+
+                <div class="ads-form-field">
+                    <label>Статистика</label>
+                    <p class="ads-field-help">
+                        <?php
+                        global $wpdb;
+                        $ads_count = $wpdb->get_var(
+                            $wpdb->prepare(
+                                "SELECT COUNT(*) FROM {$wpdb->prefix}ads WHERE category_id = %d",
+                                $edit->id,
+                            ),
+                        );
+                        printf("В категории %d объявлений", $ads_count);
+                        ?>
+                    </p>
+                </div>
+            </div>
+
+            <p class="ads-form-actions">
+                <button type="submit" class="button button-primary">Сохранить изменения</button>
+                <a href="<?php echo admin_url(
+                    "admin.php?page=ads-categories",
+                ); ?>" class="button">Отмена</a>
+            </p>
+        </form>
     </div>
     <?php endif; ?>
 
-    <!-- 📋 Таблица категорий -->
-    <?php if (!$edit && !empty($items)): ?>
-    <form method="get" class="ads-categories-filters" style="margin: 20px 0;">
+    <!-- Список категорий -->
+    <?php if (!$edit): ?>
+    <form method="get" class="ads-categories-search">
         <input type="hidden" name="page" value="ads-categories">
-        <div style="display: flex; gap: 10px; align-items: center;">
+        <div class="ads-search-row">
             <input type="search" name="s" value="<?php echo esc_attr(
                 $search,
             ); ?>"
-                   placeholder="🔍 <?php esc_attr_e(
-                       "Поиск категорий...",
-                       "ads-board",
-                   ); ?>"
-                   style="min-width: 250px; height: 32px; padding: 0 10px;">
-            <button type="submit" class="button"><?php _e(
-                "Найти",
-                "ads-board",
-            ); ?></button>
+                   placeholder="Поиск категорий..." class="regular-text">
+            <button type="submit" class="button">Найти</button>
             <?php if ($search): ?>
-                <a href="<?php echo esc_url(
-                    admin_url("admin.php?page=ads-categories"),
-                ); ?>" class="button"><?php _e("Сбросить", "ads-board"); ?></a>
+                <a href="<?php echo admin_url(
+                    "admin.php?page=ads-categories",
+                ); ?>" class="button">Сбросить</a>
             <?php endif; ?>
         </div>
     </form>
 
-    <table class="wp-list-table widefat fixed striped">
+    <?php if (!empty($items)): ?>
+    <table class="wp-list-table widefat fixed striped ads-categories-table">
         <thead>
             <tr>
-                <th scope="col" style="width: 60px;">ID</th>
-                <th scope="col"><?php _e("Название", "ads-board"); ?></th>
-                <th scope="col"><?php _e("Ярлык", "ads-board"); ?></th>
-                <th scope="col"><?php _e("Описание", "ads-board"); ?></th>
-                <th scope="col" style="width: 80px;"><?php _e(
-                    "Порядок",
-                    "ads-board",
-                ); ?></th>
-                <th scope="col" style="width: 100px;"><?php _e(
-                    "Объявлений",
-                    "ads-board",
-                ); ?></th>
-                <th scope="col" style="width: 150px;"><?php _e(
-                    "Действия",
-                    "ads-board",
-                ); ?></th>
+                <th scope="col" class="ads-col-id">ID</th>
+                <th scope="col">Название</th>
+                <th scope="col">Ярлык</th>
+                <th scope="col">Описание</th>
+                <th scope="col ads-col-sort">Порядок</th>
+                <th scope="col ads-col-count">Объявлений</th>
+                <th scope="col ads-col-actions">Действия</th>
             </tr>
         </thead>
         <tbody>
@@ -375,36 +257,31 @@ $search = $data["search"] ?? "";
                 );
                 ?>
             <tr>
-                <td><?php echo (int) $cat->id; ?></td>
-                <td>
-                    <strong><?php echo esc_html($cat->name); ?></strong>
-                </td>
+                <td class="ads-col-id"><?php echo (int) $cat->id; ?></td>
+                <td><strong><?php echo esc_html($cat->name); ?></strong></td>
                 <td><code><?php echo esc_html($cat->slug); ?></code></td>
                 <td><?php echo esc_html(
-                    wp_trim_words($cat->description, 20, "…"),
+                    wp_trim_words($cat->description, 25, "…"),
                 ); ?></td>
-                <td style="text-align: center;"><?php echo (int) $cat->sort_order; ?></td>
-                <td style="text-align: center;">
+                <td class="ads-col-sort ads-text-center"><?php echo (int) $cat->sort_order; ?></td>
+                <td class="ads-col-count ads-text-center">
                     <a href="<?php echo admin_url(
                         "admin.php?page=ads-board&category=" . $cat->id,
                     ); ?>">
                         <?php echo (int) $ads_count; ?>
                     </a>
                 </td>
-                <td>
+                <td class="ads-col-actions">
                     <div class="row-actions">
                         <a href="<?php echo esc_url(
                             $edit_link,
-                        ); ?>">✏️ <?php _e("Ред.", "ads-board"); ?></a> |
+                        ); ?>">Редактировать</a> |
                         <a href="<?php echo esc_url($delete_link); ?>"
-                           onclick="return confirm('<?php echo esc_js(
-                               sprintf(
-                                   __("Удалить категорию «%s»?", "ads-board"),
-                                   $cat->name,
-                               ),
-                           ); ?>');"
-                           style="color: #dc3232;">
-                            🗑️ <?php _e("Удалить", "ads-board"); ?>
+                           onclick="return confirm('Удалить категорию «<?php echo esc_js(
+                               $cat->name,
+                           ); ?>»?');"
+                           class="delete">
+                            Удалить
                         </a>
                     </div>
                 </td>
@@ -431,67 +308,55 @@ $search = $data["search"] ?? "";
             </div>
         </div>
     <?php endif; ?>
-    <?php elseif (!$edit): ?>
-        <div class="card" style="margin-top: 20px; padding: 20px; text-align: center;">
-            <p>😕 <?php _e("Категории не найдены.", "ads-board"); ?></p>
+
+    <?php else: ?>
+        <div class="card ads-empty-state">
+            <p>Категории не найдены.</p>
             <button type="button" class="button button-primary" id="ads-show-add-form">
-                ➕ <?php _e("Создать первую категорию", "ads-board"); ?>
+                Создать первую категорию
             </button>
         </div>
     <?php endif; ?>
+    <?php endif; ?>
 </div>
 
-<!-- Скрипты для интерактива -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Показать/скрыть форму добавления
     const showBtn = document.getElementById('ads-show-add-form');
     const addForm = document.getElementById('ads-add-category-form');
     const cancelBtn = document.getElementById('ads-cancel-add');
 
     if (showBtn && addForm) {
         showBtn.addEventListener('click', function() {
-            addForm.style.display = 'block';
-            showBtn.style.display = 'none';
+            addForm.classList.remove('ads-hidden');
+            showBtn.classList.add('ads-hidden');
             document.getElementById('cat_name')?.focus();
         });
     }
 
     if (cancelBtn && addForm && showBtn) {
         cancelBtn.addEventListener('click', function() {
-            addForm.style.display = 'none';
-            showBtn.style.display = 'inline-block';
+            addForm.classList.add('ads-hidden');
+            showBtn.classList.remove('ads-hidden');
         });
     }
 
-    // Автогенерация slug при вводе названия (если slug пустой)
+    // Автогенерация slug
     const nameInput = document.getElementById('cat_name');
     const slugInput = document.getElementById('cat_slug');
 
     if (nameInput && slugInput) {
         let slugTouched = false;
-
-        slugInput.addEventListener('focus', function() {
-            slugTouched = this.value.length > 0;
-        });
+        slugInput.addEventListener('focus', function() { slugTouched = this.value.length > 0; });
 
         nameInput.addEventListener('input', function() {
             if (!slugTouched && !slugInput.value) {
-                // Простая транслитерация для примера
-                let slug = this.value.toLowerCase()
+                slugInput.value = this.value.toLowerCase()
                     .replace(/[^\w\s-]/g, '')
                     .replace(/[\s_]+/g, '-')
                     .replace(/^-+|-+$/g, '');
-                slugInput.value = slug;
             }
         });
     }
 });
 </script>
-
-<style>
-.ads-board-categories .required { color: #dc3232; }
-.ads-board-categories code { background: #f0f0f1; padding: 2px 6px; border-radius: 3px; font-size: 13px; }
-.ads-board-categories .row-actions { visibility: hidden; }
-.ads-board-categories tr:hover .row-actions { visibility: visible; }
-</style>
