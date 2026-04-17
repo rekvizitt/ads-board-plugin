@@ -1,0 +1,155 @@
+/**
+ * Admin styles for Ads Board
+ * @package Ads_Board
+ */
+
+/* Статусы */
+.ads-status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 500;
+}
+.status-active {
+    background: #d4edda;
+    color: #155724;
+}
+.status-draft {
+    background: #fff3cd;
+    color: #856404;
+}
+.status-expired {
+    background: #f8d7da;
+    color: #721c24;
+}
+.status-sold {
+    background: #cce5ff;
+    color: #004085;
+}
+
+/* Таблица */
+.wp-list-table .row-actions {
+    visibility: hidden;
+}
+.wp-list-table tr:hover .row-actions {
+    visibility: visible;
+}
+.wp-list-table .check-column {
+    width: 30px;
+    padding: 8px 0 8px 10px;
+}
+
+/* Фильтры */
+.ads-filters {
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.ads-filters select,
+.ads-filters input[type="search"] {
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid #7e8993;
+    border-radius: 3px;
+}
+
+/* Адаптив */
+@media screen and (max-width: 782px) {
+    .ads-filters > div {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .ads-filters select,
+    .ads-filters input[type="search"] {
+        width: 100%;
+    }
+}
+
+/* Settings page tabs */
+.ads-board-settings .ads-settings-tabs {
+    display: flex;
+    gap: 5px;
+    margin: 20px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.ads-board-settings .ads-tab-button {
+    padding: 10px 20px;
+    background: #f6f7f7;
+    border: 1px solid #ddd;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.ads-board-settings .ads-tab-button:hover {
+    background: #f0f0f1;
+}
+
+.ads-board-settings .ads-tab-button.active {
+    background: #fff;
+    border-color: #ddd;
+    border-bottom: 1px solid #fff;
+    font-weight: 500;
+    margin-bottom: -1px;
+}
+
+.ads-board-settings .settings-section {
+    display: none;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 0 4px 4px 4px;
+    padding: 20px;
+}
+
+.ads-board-settings .settings-section.active {
+    display: block;
+}
+
+/* Form styling */
+.ads-board-settings .form-table th {
+    padding: 15px 10px 15px 0;
+    width: 250px;
+    font-weight: 500;
+    vertical-align: top;
+}
+
+.ads-board-settings .form-table td {
+    padding: 15px 0;
+}
+
+.ads-board-settings input[type="number"],
+.ads-board-settings select {
+    padding: 5px 8px;
+    min-height: 30px;
+}
+
+.ads-board-settings .description {
+    margin: 5px 0 0;
+    color: #666;
+    font-size: 13px;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+    .ads-board-settings .ads-settings-tabs {
+        flex-wrap: wrap;
+    }
+
+    .ads-board-settings .ads-tab-button {
+        flex: 1 1 auto;
+        text-align: center;
+        margin: 2px 0;
+    }
+
+    .ads-board-settings .form-table th {
+        width: 100%;
+        padding-bottom: 5px;
+    }
+
+    .ads-board-settings .form-table td {
+        padding-top: 0;
+    }
+}
