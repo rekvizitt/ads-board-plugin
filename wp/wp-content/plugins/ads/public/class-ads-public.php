@@ -15,11 +15,56 @@ class Ads_Public
 {
     private $plugin_name;
     private $version;
+    private $router;
     public function __construct($plugin_name, $version)
     {
         $this->plugin_name = $plugin_name;
         $this->version = $version;
+        if (file_exists(ADS_PLUGIN_DIR . "includes/class-ads-router.php")) {
+            require_once ADS_PLUGIN_DIR . "includes/class-ads-router.php";
+            $this->router = new Ads_Router();
+        }
     }
-    public function enqueue_styles() {}
-    public function enqueue_scripts() {}
+    public function enqueue_styles()
+    {
+        wp_enqueue_style(
+            $this->plugin_name,
+            ADS_PLUGIN_URL . "public/css/ads-public.css",
+            [],
+            $this->version,
+            "all",
+        );
+    }
+
+    public function enqueue_scripts()
+    {
+        wp_enqueue_script(
+            $this->plugin_name,
+            ADS_PLUGIN_URL . "public/js/ads-public.js",
+            ["jquery"],
+            $this->version,
+            true,
+        );
+    }
+    public function init_router()
+    {
+        if ($this->router) {
+            $this->router->register();
+        }
+    }
+
+    public function add_query_vars($vars)
+    {
+        if ($this->router) {
+            return $this->router->register_query_vars($vars);
+        }
+        return $vars;
+    }
+
+    public function template_redirect()
+    {
+        if ($this->router) {
+            $this->router->handle_template_redirect();
+        }
+    }
 }
