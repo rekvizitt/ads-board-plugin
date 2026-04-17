@@ -1,0 +1,71 @@
+:root {
+    --ads-primary: #0073aa;
+    --ads-primary-hover: #005177;
+    --ads-primary-light: #e5f5fa;
+
+    --ads-success: #00a32a;
+    --ads-success-light: #e7f5ec;
+
+    --ads-warning: #f0b849;
+    --ads-warning-light: #fef8ee;
+
+    --ads-danger: #d63638;
+    --ads-danger-hover: #b32d2e;
+    --ads-danger-light: #fcf0f1;
+
+    --ads-gray-50: #f9fafb;
+    --ads-gray-100: #f3f4f6;
+    --ads-gray-200: #e5e7eb;
+    --ads-gray-300: #d1d5db;
+    --ads-gray-400: #9ca3af;
+    --ads-gray-500: #6b7280;
+    --ads-gray-600: #4b5563;
+    --ads-gray-700: #374151;
+    --ads-gray-800: #1f2937;
+    --ads-gray-900: #111827;
+
+    --ads-white: #ffffff;
+    --ads-black: #000000;
+
+    --ads-text: var(--ads-gray-900);
+    --ads-text-light: var(--ads-gray-600);
+    --ads-text-lighter: var(--ads-gray-500);
+
+    --ads-border: var(--ads-gray-200);
+    --ads-border-dark: var(--ads-gray-300);
+
+    --ads-bg: var(--ads-gray-50);
+    --ads-bg-white: var(--ads-white);
+
+    --ads-spacing-1: 4px;
+    --ads-spacing-2: 8px;
+    --ads-spacing-3: 12px;
+    --ads-spacing-4: 16px;
+    --ads-spacing-5: 20px;
+    --ads-spacing-6: 24px;
+    --ads-spacing-8: 32px;
+    --ads-spacing-10: 40px;
+    --ads-spacing-12: 48px;
+
+    --ads-radius: 6px;
+    --ads-radius-lg: 8px;
+    --ads-radius-full: 9999px;
+
+    --ads-font:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+        Arial, sans-serif;
+    --ads-font-mono: ui-monospace, Menlo, Monaco, "Courier New", monospace;
+
+    --ads-text-xs: 12px;
+    --ads-text-sm: 13px;
+    --ads-text-base: 14px;
+    --ads-text-lg: 16px;
+    --ads-text-xl: 18px;
+    --ads-text-2xl: 20px;
+
+    --ads-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --ads-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    --ads-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+
+    --ads-transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
