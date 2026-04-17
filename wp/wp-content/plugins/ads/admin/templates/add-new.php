@@ -417,27 +417,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Предпросмотр загружаемых изображений
-    const fileInput = document.getElementById('ad_images');
-    const preview = document.getElementById('ads-upload-preview');
-
-    if (fileInput && preview) {
-        fileInput.addEventListener('change', function(e) {
-            preview.innerHTML = '';
-            Array.from(e.target.files).slice(0, 10).forEach(file => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(ev) {
-                        const div = document.createElement('div');
-                        div.className = 'ads-gallery-item preview';
-                        div.innerHTML = '<img src="' + ev.target.result + '" alt="' + file.name + '">';
-                        preview.appendChild(div);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        });
-    }
 
     // Установка главного изображения (через редирект)
     document.querySelectorAll('.ads-set-primary').forEach(btn => {

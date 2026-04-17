@@ -125,14 +125,17 @@ class Ads_Categories_Controller
 
         // Проверка уникальности slug
         global $wpdb;
-        $existing = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT id FROM {$this->table_categories} WHERE slug = %s" .
-                    ($is_update ? " AND id != %d" : ""),
-                $slug,
-                $is_update ? absint($data["id"] ?? 0) : 0,
-            ),
-        );
+
+        // Формируем запрос и аргументы отдельно, чтобы количество плейсхолдеров совпадало с аргументами
+        $slug_query = "SELECT id FROM {$this->table_categories} WHERE slug = %s";
+        $slug_args = [$slug];
+
+        if ($is_update && !empty($data["id"])) {
+            $slug_query .= " AND id != %d";
+            $slug_args[] = absint($data["id"]);
+        }
+
+        $existing = $wpdb->get_var($wpdb->prepare($slug_query, $slug_args));
 
         if ($existing) {
             $errors["slug"] = __(

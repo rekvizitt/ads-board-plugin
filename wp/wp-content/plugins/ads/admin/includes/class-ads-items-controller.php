@@ -146,7 +146,7 @@ class Ads_Items_Controller
     {
         $errors = [];
 
-        // 🔹 Заголовок (обязателен, из него генерируем slug)
+        // Заголовок (обязателен, из него генерируем slug)
         $title = trim($data["title"] ?? "");
         if (empty($title)) {
             $errors["title"] = __("Заголовок обязателен.", "ads-board");
@@ -157,7 +157,7 @@ class Ads_Items_Controller
             );
         }
 
-        // 🔹 Slug — генерируем ОБЯЗАТЕЛЬНО, даже если есть ошибки в других полях
+        // Slug — генерируем обязательно, даже если есть ошибки в других полях
         $slug = "";
         if (!empty($data["slug"])) {
             $slug = sanitize_title($data["slug"]);
@@ -174,22 +174,25 @@ class Ads_Items_Controller
         // Проверка уникальности slug
         global $wpdb;
         $table_ads = $wpdb->prefix . "ads";
-        $existing = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT id FROM {$table_ads} WHERE slug = %s" .
-                    ($is_update ? " AND id != %d" : ""),
-                $slug,
-                $is_update ? absint($data["id"] ?? 0) : 0,
-            ),
-        );
+
+        // Формируем запрос и аргументы отдельно, чтобы количество плейсхолдеров совпадало с аргументами
+        $slug_query = "SELECT id FROM {$table_ads} WHERE slug = %s";
+        $slug_args = [$slug];
+
+        if ($is_update && !empty($data["id"])) {
+            $slug_query .= " AND id != %d";
+            $slug_args[] = absint($data["id"]);
+        }
+
+        $existing = $wpdb->get_var($wpdb->prepare($slug_query, $slug_args));
 
         if ($existing) {
-            $errors["slug"] = __("Этот ярлок уже используется.", "ads-board");
+            $errors["slug"] = __("Этот ярлык уже используется.", "ads-board");
             // Генерируем уникальный, чтобы запрос не упал
             $slug = $slug . "-" . substr(md5(uniqid()), 0, 4);
         }
 
-        // 🔹 Описание
+        // Описание
         $description = $data["description"] ?? "";
         $allowed_html = wp_kses_allowed_html("post");
         if (
@@ -202,7 +205,7 @@ class Ads_Items_Controller
             );
         }
 
-        // 🔹 Цена
+        // Цена
         $price = $data["price"] ?? "";
         if ($price !== "" && !is_numeric($price)) {
             $errors["price"] = __("Цена должна быть числом.", "ads-board");
@@ -213,13 +216,13 @@ class Ads_Items_Controller
             );
         }
 
-        // 🔹 Автор
+        // Автор
         $author_name = trim($data["author_name"] ?? "");
         if (empty($author_name)) {
             $errors["author_name"] = __("Укажите имя автора.", "ads-board");
         }
 
-        // 🔹 Контакты (хотя бы один)
+        // Контакты (хотя бы один)
         $phone = trim($data["author_phone"] ?? "");
         $email = trim($data["author_email"] ?? "");
         if (empty($phone) && empty($email)) {
@@ -228,7 +231,6 @@ class Ads_Items_Controller
         if ($email && !is_email($email)) {
             $errors["author_email"] = __("Некорректный email.", "ads-board");
         }
-
         if (
             $phone &&
             !preg_match(
@@ -236,17 +238,19 @@ class Ads_Items_Controller
                 preg_replace("/[\s\-\(\)]/", "", $phone),
             )
         ) {
-            $errors["author_phone"] =
-                "Некорректный телефон. Пример: +375 (29) 123-45-67";
+            $errors["author_phone"] = __(
+                "Некорректный телефон. Пример: +375 (29) 123-45-67",
+                "ads-board",
+            );
         }
 
-        // 🔹 Категория
+        // Категория
         $category_id = absint($data["category_id"] ?? 0);
         if (!$category_id) {
             $errors["category_id"] = __("Выберите категорию.", "ads-board");
         }
 
-        // 🔹 Даты
+        // Даты
         $published_at = $data["published_at"] ?? "";
         $expires_at = $data["expires_at"] ?? "";
 
@@ -273,11 +277,11 @@ class Ads_Items_Controller
             );
         }
 
-        // 🔹 Флаги
+        // Флаги
         $is_pinned = !empty($data["is_pinned"]) ? 1 : 0;
         $is_important = !empty($data["is_important"]) ? 1 : 0;
 
-        // 🔹 Статус
+        // Статус
         $status = in_array(
             $data["status"] ?? "draft",
             ["draft", "active", "sold"],
@@ -286,11 +290,11 @@ class Ads_Items_Controller
             ? $data["status"]
             : "draft";
 
-        // 🔹 Возвращаем ВСЕ поля в sanitized, даже если есть ошибки
+        // Возвращаем ВСЕ поля в sanitized, даже если есть ошибки
         // Это нужно, чтобы форма не очищалась при валидации
         $sanitized = [
             "title" => sanitize_text_field($title),
-            "slug" => $slug, // ← всегда определён
+            "slug" => $slug,
             "description" => wp_kses($description, $allowed_html),
             "price" => $price !== "" ? (float) $price : null,
             "author_name" => sanitize_text_field($author_name),
