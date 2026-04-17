@@ -14,16 +14,22 @@ if (!defined("ABSPATH")) {
     exit();
 }
 
+define("ADS_PLUGIN_DIR", plugin_dir_path(__FILE__));
+define("ADS_PLUGIN_URL", plugin_dir_url(__FILE__));
+
 function activate_ads()
 {
-    require_once plugin_dir_path(__FILE__) . "includes/class-ads-activator.php";
+    require_once ADS_PLUGIN_DIR . "includes/class-ads-activator.php";
     Ads_Activator::activate();
+    if (class_exists("Ads_Router")) {
+        $router = new Ads_Router();
+        $router->flush();
+    }
 }
 
 function deactivate_ads()
 {
-    require_once plugin_dir_path(__FILE__) .
-        "includes/class-ads-deactivator.php";
+    require_once ADS_PLUGIN_DIR . "includes/class-ads-deactivator.php";
     Ads_Deactivator::deactivate();
 }
 
