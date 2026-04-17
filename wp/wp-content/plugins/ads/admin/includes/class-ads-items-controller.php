@@ -146,7 +146,7 @@ class Ads_Items_Controller
     {
         $errors = [];
 
-        // 🔹 Заголовок
+        // 🔹 Заголовок (обязателен, из него генерируем slug)
         $title = trim($data["title"] ?? "");
         if (empty($title)) {
             $errors["title"] = __("Заголовок обязателен.", "ads-board");
@@ -157,12 +157,49 @@ class Ads_Items_Controller
             );
         }
 
+        // 🔹 Slug — генерируем ОБЯЗАТЕЛЬНО, даже если есть ошибки в других полях
+        $slug = "";
+        if (!empty($data["slug"])) {
+            $slug = sanitize_title($data["slug"]);
+        } elseif (!empty($title)) {
+            // Автогенерация из заголовка
+            $slug = sanitize_title($title);
+        }
+
+        // Если slug всё ещё пустой (заголовок тоже пустой) — генерируем уникальный
+        if (empty($slug)) {
+            $slug = "ad-" . time() . "-" . substr(md5(uniqid()), 0, 6);
+        }
+
+        // Проверка уникальности slug
+        global $wpdb;
+        $table_ads = $wpdb->prefix . "ads";
+        $existing = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM {$table_ads} WHERE slug = %s" .
+                    ($is_update ? " AND id != %d" : ""),
+                $slug,
+                $is_update ? absint($data["id"] ?? 0) : 0,
+            ),
+        );
+
+        if ($existing) {
+            $errors["slug"] = __("Этот ярлок уже используется.", "ads-board");
+            // Генерируем уникальный, чтобы запрос не упал
+            $slug = $slug . "-" . substr(md5(uniqid()), 0, 4);
+        }
+
         // 🔹 Описание
         $description = $data["description"] ?? "";
-        // Разрешаем безопасные HTML-теги для WYSIWYG
         $allowed_html = wp_kses_allowed_html("post");
-        if (empty($description)) {
-            $errors["description"] = __("Описание обязательно.", "ads-board");
+        if (
+            empty($description) ||
+            strlen(wp_strip_all_tags($description)) < 10
+        ) {
+            $errors["description"] = __(
+                "Описание должно содержать минимум 10 символов.",
+                "ads-board",
+            );
         }
 
         // 🔹 Цена
@@ -182,17 +219,16 @@ class Ads_Items_Controller
             $errors["author_name"] = __("Укажите имя автора.", "ads-board");
         }
 
-        // Контакты (хотя бы один)
+        // 🔹 Контакты (хотя бы один)
         $phone = trim($data["author_phone"] ?? "");
         $email = trim($data["author_email"] ?? "");
-
         if (empty($phone) && empty($email)) {
-            $errors["contacts"] = "Укажите телефон или email";
+            $errors["contacts"] = __("Укажите телефон или email.", "ads-board");
         }
         if ($email && !is_email($email)) {
-            $errors["author_email"] = "Некорректный email";
+            $errors["author_email"] = __("Некорректный email.", "ads-board");
         }
-        // Валидация белорусского формата: +375 (XX) XXX-XX-XX или 80291234567
+
         if (
             $phone &&
             !preg_match(
@@ -250,30 +286,32 @@ class Ads_Items_Controller
             ? $data["status"]
             : "draft";
 
+        // 🔹 Возвращаем ВСЕ поля в sanitized, даже если есть ошибки
+        // Это нужно, чтобы форма не очищалась при валидации
+        $sanitized = [
+            "title" => sanitize_text_field($title),
+            "slug" => $slug, // ← всегда определён
+            "description" => wp_kses($description, $allowed_html),
+            "price" => $price !== "" ? (float) $price : null,
+            "author_name" => sanitize_text_field($author_name),
+            "author_phone" => sanitize_text_field($phone),
+            "author_email" => sanitize_email($email),
+            "category_id" => $category_id,
+            "status" => $status,
+            "is_pinned" => $is_pinned,
+            "is_important" => $is_important,
+            "published_at" => $published_at
+                ? date("Y-m-d H:i:s", strtotime($published_at))
+                : null,
+            "expires_at" => $expires_at
+                ? date("Y-m-d H:i:s", strtotime($expires_at))
+                : null,
+        ];
+
         return [
             "valid" => empty($errors),
             "errors" => $errors,
-            "sanitized" => [
-                "title" => sanitize_text_field($title),
-                "slug" => empty($data["slug"])
-                    ? sanitize_title($title)
-                    : sanitize_title($data["slug"]),
-                "description" => wp_kses($description, $allowed_html),
-                "price" => $price !== "" ? (float) $price : null,
-                "author_name" => sanitize_text_field($author_name),
-                "author_phone" => sanitize_text_field($phone),
-                "author_email" => sanitize_email($email),
-                "category_id" => $category_id,
-                "status" => $status,
-                "is_pinned" => $is_pinned,
-                "is_important" => $is_important,
-                "published_at" => $published_at
-                    ? date("Y-m-d H:i:s", strtotime($published_at))
-                    : null,
-                "expires_at" => $expires_at
-                    ? date("Y-m-d H:i:s", strtotime($expires_at))
-                    : null,
-            ],
+            "sanitized" => $sanitized,
         ];
     }
 

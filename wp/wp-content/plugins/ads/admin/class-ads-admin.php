@@ -539,15 +539,17 @@ class Ads_Admin
             } else {
                 // Сохраняем ошибки для отображения в форме
                 set_transient("ads_items_form_errors", $result["errors"], 30);
-                set_transient("ads_items_form_old", $_POST, 30);
-                wp_safe_redirect(
-                    admin_url(
-                        "admin.php?page=ads-add-new" .
-                            (isset($_POST["id"])
-                                ? "&edit=" . (int) $_POST["id"]
-                                : ""),
-                    ),
+                set_transient(
+                    "ads_items_form_old",
+                    $result["sanitized"] ?? [],
+                    30,
                 );
+
+                $redirect_url = admin_url("admin.php?page=ads-add-new");
+                if (!empty($_POST["id"])) {
+                    $redirect_url .= "&edit=" . absint($_POST["id"]);
+                }
+                wp_safe_redirect($redirect_url);
                 exit();
             }
         }

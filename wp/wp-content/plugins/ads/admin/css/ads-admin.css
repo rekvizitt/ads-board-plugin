@@ -153,3 +153,237 @@
         padding-top: 0;
     }
 }
+
+/* Ads Board Admin - Form Styles */
+
+/* Compact form layout */
+.ads-form-wrap {
+    max-width: 1200px;
+    margin: 20px auto;
+}
+.ads-form-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+}
+@media (max-width: 900px) {
+    .ads-form-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Section boxes */
+.ads-form-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 15px 20px;
+    margin-bottom: 15px;
+}
+.ads-form-section h3 {
+    margin: 0 0 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+    font-weight: 600;
+    color: #23282d;
+}
+.ads-form-box {
+    border: 1px solid #c3c4c7;
+    background: #f6f7f7;
+}
+.ads-form-box h3 {
+    border-bottom-color: #c3c4c7;
+}
+
+/* Form fields */
+.ads-form-field {
+    margin-bottom: 15px;
+}
+.ads-form-field label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #23282d;
+}
+.ads-form-field input[type="text"],
+.ads-form-field input[type="email"],
+.ads-form-field input[type="tel"],
+.ads-form-field input[type="number"],
+.ads-form-field select,
+.ads-form-field input[type="datetime-local"] {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #7e8993;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+.ads-form-field input:focus,
+.ads-form-field select:focus {
+    border-color: #007cba;
+    box-shadow: 0 0 0 1px #007cba;
+    outline: none;
+}
+.ads-form-field .ads-field-error {
+    display: block;
+    color: #d63638;
+    font-size: 13px;
+    margin-top: 4px;
+}
+.ads-form-field .ads-field-help {
+    color: #646970;
+    font-size: 12px;
+    margin-top: 4px;
+}
+.ads-required {
+    color: #d63638;
+}
+
+/* Two-column rows */
+.ads-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+@media (max-width: 600px) {
+    .ads-form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Gallery */
+.ads-gallery-preview {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.ads-gallery-item {
+    position: relative;
+    aspect-ratio: 1;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #f0f0f1;
+}
+.ads-gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.ads-gallery-item.preview {
+    border-style: dashed;
+}
+.ads-gallery-actions {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    display: flex;
+    gap: 3px;
+}
+.ads-gallery-actions button,
+.ads-gallery-actions a {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+.ads-gallery-actions button:hover,
+.ads-gallery-actions a:hover {
+    background: #007cba;
+}
+.ads-is-primary {
+    color: #f0ad4e;
+    font-size: 16px;
+}
+
+/* Upload area */
+.ads-upload-area {
+    text-align: center;
+    padding: 20px;
+    border: 2px dashed #c3c4c7;
+    border-radius: 4px;
+    background: #fff;
+}
+.ads-upload-label {
+    cursor: pointer;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: #007cba;
+}
+.ads-upload-label:hover {
+    color: #005a87;
+}
+.ads-upload-label .dashicons {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+}
+.ads-upload-help {
+    font-size: 12px;
+    color: #646970;
+    margin-top: 8px;
+}
+
+/* Checkboxes */
+.ads-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+.ads-checkbox input {
+    margin: 0;
+}
+
+/* Sticky actions */
+.ads-form-actions {
+    position: sticky;
+    bottom: 20px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 15px;
+    text-align: center;
+    z-index: 10;
+}
+.ads-form-actions .button-primary {
+    padding: 10px 30px;
+    font-size: 15px;
+}
+.ads-form-actions .button-link-delete {
+    color: #d63638;
+    text-decoration: none;
+}
+.ads-form-actions .button-link-delete:hover {
+    color: #b32d2e;
+}
+
+/* Error notices */
+.ads-error-list {
+    margin: 10px 0 0 20px;
+    padding: 0;
+    list-style: disc;
+}
+.ads-error-list li {
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+/* Editor tweaks */
+#wp-ad_description-editor-container {
+    border: 1px solid #7e8993 !important;
+    border-radius: 4px;
+}

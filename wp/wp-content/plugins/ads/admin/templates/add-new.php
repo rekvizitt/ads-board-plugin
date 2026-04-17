@@ -1,6 +1,6 @@
 <?php
 /**
- * Template: Add/Edit Ad
+ * Template: Add/Edit Ad Form
  * @package Ads_Board
  */
 
@@ -16,44 +16,36 @@ $form_action = $data["form_action"] ?? "create";
 $gallery = $item ? $item->gallery ?? [] : [];
 
 // Функция получения значения: приоритет $old > $item > default
-function ads_get_field_value($key, $default = "")
+function ads_get_field($key, $default = "")
 {
     global $old, $item;
     if (isset($old[$key]) && $old[$key] !== "") {
         return $old[$key];
     }
-    if (
-        $item &&
-        property_exists($item, $key) &&
-        $item->$key !== null &&
-        $item->$key !== ""
-    ) {
+    if ($item && property_exists($item, $key) && $item->$key !== null) {
         return $item->$key;
     }
     return $default;
 }
+
+$is_edit = !empty($item);
+$page_title = $is_edit ? "Редактировать объявление" : "Добавить объявление";
+$submit_text = $is_edit ? "Сохранить изменения" : "Опубликовать объявление";
 ?>
 
-<div class="wrap ads-board-add-new">
-    <h1 class="wp-heading-inline" style="margin-bottom: 20px;">
-        <?php echo $item
-            ? "Редактировать объявление"
-            : "Добавить объявление"; ?>
-    </h1>
+<div class="wrap ads-form-wrap">
+    <h1 class="wp-heading-inline"><?php echo esc_html($page_title); ?></h1>
     <a href="<?php echo admin_url(
         "admin.php?page=ads-board",
-    ); ?>" class="page-title-action">
-        К списку
-    </a>
+    ); ?>" class="page-title-action">Назад к списку</a>
 
-    <!-- 🔔 Блок ошибок валидации — ВВЕРХУ, чтобы сразу видно -->
+    <!-- Блок ошибок валидации -->
     <?php if (!empty($errors)): ?>
-        <div class="notice notice-error" style="margin: 20px 0; padding: 15px;">
+        <div class="notice notice-error is-dismissible">
             <p><strong>Исправьте ошибки в форме:</strong></p>
-            <ul style="margin: 10px 0 0 20px; padding: 0;">
+            <ul class="ads-error-list">
                 <?php foreach ($errors as $field => $message):
-
-                    $field_labels = [
+                    $labels = [
                         "title" => "Заголовок",
                         "description" => "Описание",
                         "price" => "Цена",
@@ -62,24 +54,19 @@ function ads_get_field_value($key, $default = "")
                         "author_email" => "Email",
                         "contacts" => "Контакты",
                         "category_id" => "Категория",
-                        "published_at" => "Дата публикации",
-                        "expires_at" => "Дата окончания",
-                    ];
-                    $label = $field_labels[$field] ?? $field;
-                    ?>
-                    <li><?php echo esc_html($label); ?>: <?php echo esc_html(
-    $message,
-); ?></li>
+                    ]; ?>
+                    <li><strong><?php echo esc_html(
+                        $labels[$field] ?? $field,
+                    ); ?>:</strong> <?php echo esc_html($message); ?></li>
                 <?php
                 endforeach; ?>
             </ul>
         </div>
     <?php endif; ?>
 
-    <!-- 🔔 Уведомления об успехе -->
     <?php settings_errors("ads_items"); ?>
 
-    <form method="post" enctype="multipart/form-data" class="ads-form">
+    <form method="post" enctype="multipart/form-data" id="ads-form" class="ads-form">
         <?php wp_nonce_field("ads_items_nonce", "ads_items_nonce_field"); ?>
         <input type="hidden" name="ads_action" value="<?php echo esc_attr(
             $form_action,
@@ -90,309 +77,246 @@ function ads_get_field_value($key, $default = "")
             ); ?>">
         <?php endif; ?>
 
-        <div class="postbox-container" style="max-width: 700px; float: left; width: 70%;">
+        <div class="ads-form-layout">
 
-            <!-- Основная информация -->
-            <div class="postbox" style="margin-bottom: 20px;">
-                <h2 class="hndle" style="padding: 10px 15px;"><span>Основная информация</span></h2>
-                <div class="inside" style="padding: 15px;">
-                    <table class="form-table" style="margin: 0;">
-                        <tr>
-                            <th scope="row" style="padding: 15px 10px 15px 0; width: 150px;">
-                                <label for="ad_title">Заголовок <span style="color:#dc3232">*</span></label>
-                            </th>
-                            <td style="padding: 15px 0;">
-                                <input type="text" name="title" id="ad_title" class="large-text"
-                                       value="<?php echo esc_attr(
-                                           ads_get_field_value("title"),
-                                       ); ?>"
-                                       style="padding: 8px 12px;" required>
-                                <?php if (isset($errors["title"])): ?>
-                                    <p class="description" style="color:#dc3232; margin: 5px 0 0;"><?php echo esc_html(
-                                        $errors["title"],
-                                    ); ?></p>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row" style="padding: 15px 10px 15px 0;">
-                                <label for="ad_slug">Ярлык (slug)</label>
-                            </th>
-                            <td style="padding: 15px 0;">
-                                <input type="text" name="slug" id="ad_slug" class="regular-text code"
-                                       value="<?php echo esc_attr(
-                                           ads_get_field_value("slug"),
-                                       ); ?>"
-                                       style="padding: 8px 12px;" placeholder="Автогенерация">
-                                <p class="description">Латиницей, для ЧПУ. Оставьте пустым для автозаполнения.</p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row" style="padding: 15px 10px 15px 0; vertical-align: top;">
-                                <label for="ad_description">Описание <span style="color:#dc3232">*</span></label>
-                            </th>
-                            <td style="padding: 15px 0;">
-                                <?php wp_editor(
-                                    ads_get_field_value("description", ""),
-                                    "ad_description",
-                                    [
-                                        "textarea_name" => "description",
-                                        "textarea_rows" => 10,
-                                        "media_buttons" => true,
-                                        "teeny" => false,
-                                        "quicktags" => true,
-                                        "editor_css" =>
-                                            "<style>#wp-ad_description-editor-container { padding: 10px; }</style>",
-                                    ],
-                                ); ?>
-                                <?php if (isset($errors["description"])): ?>
-                                    <p class="description" style="color:#dc3232; margin: 5px 0 0;"><?php echo esc_html(
-                                        $errors["description"],
-                                    ); ?></p>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    </table>
+            <!-- Левая колонка: основные поля -->
+            <div class="ads-form-main">
+
+                <!-- Заголовок -->
+                <div class="ads-form-section">
+                    <h3>Основная информация</h3>
+                    <div class="ads-form-field">
+                        <label for="ad_title">Заголовок <span class="ads-required">*</span></label>
+                        <input type="text" name="title" id="ad_title" class="large-text"
+                               value="<?php echo esc_attr(
+                                   ads_get_field("title"),
+                               ); ?>"
+                               placeholder="Например: Продам велосипед" required>
+                        <?php if (isset($errors["title"])): ?>
+                            <span class="ads-field-error"><?php echo esc_html(
+                                $errors["title"],
+                            ); ?></span>
+                        <?php endif; ?>
+                        <p class="ads-field-help">Краткое и понятное название объявления</p>
+                    </div>
+
+                    <div class="ads-form-field">
+                        <label for="ad_slug">Ярлык (slug)</label>
+                        <input type="text" name="slug" id="ad_slug" class="regular-text code"
+                               value="<?php echo esc_attr(
+                                   ads_get_field("slug"),
+                               ); ?>"
+                               placeholder="auto-generated">
+                        <p class="ads-field-help">URL объявления. Оставьте пустым для автогенерации</p>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Цена и контакты -->
-            <div class="postbox" style="margin-bottom: 20px;">
-                <h2 class="hndle" style="padding: 10px 15px;"><span>Цена и контакты</span></h2>
-                <div class="inside" style="padding: 15px;">
-                    <table class="form-table" style="margin: 0;">
-                        <tr>
-                            <th scope="row" style="padding: 15px 10px 15px 0; width: 150px;">
-                                <label for="ad_price">Цена ($)</label>
-                            </th>
-                            <td style="padding: 15px 0;">
-                                <input type="number" name="price" id="ad_price" class="small-text" step="0.01" min="0"
-                                       value="<?php echo esc_attr(
-                                           ads_get_field_value("price", ""),
-                                       ); ?>"
-                                       style="padding: 8px 12px; width: 150px;">
-                                <?php if (isset($errors["price"])): ?>
-                                    <p class="description" style="color:#dc3232; margin: 5px 0 0;"><?php echo esc_html(
-                                        $errors["price"],
-                                    ); ?></p>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row" style="padding: 15px 10px 15px 0;">
-                                <label for="ad_author">ФИО автора <span style="color:#dc3232">*</span></label>
-                            </th>
-                            <td style="padding: 15px 0;">
-                                <input type="text" name="author_name" id="ad_author" class="regular-text"
-                                       value="<?php echo esc_attr(
-                                           ads_get_field_value("author_name"),
-                                       ); ?>"
-                                       style="padding: 8px 12px;" required>
-                                <?php if (isset($errors["author_name"])): ?>
-                                    <p class="description" style="color:#dc3232; margin: 5px 0 0;"><?php echo esc_html(
-                                        $errors["author_name"],
-                                    ); ?></p>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row" style="padding: 15px 10px 15px 0;">
-                                <label for="ad_phone">Телефон</label>
-                            </th>
-                            <td style="padding: 15px 0;">
-                                <input type="tel" name="author_phone" id="ad_phone" class="regular-text"
-                                       value="<?php echo esc_attr(
-                                           ads_get_field_value("author_phone"),
-                                       ); ?>"
-                                       style="padding: 8px 12px;"
-                                       placeholder="+375 (29) 123-45-67">
-                                <?php if (isset($errors["author_phone"])): ?>
-                                    <p class="description" style="color:#dc3232; margin: 5px 0 0;"><?php echo esc_html(
-                                        $errors["author_phone"],
-                                    ); ?></p>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row" style="padding: 15px 10px 15px 0;">
-                                <label for="ad_email">Email</label>
-                            </th>
-                            <td style="padding: 15px 0;">
-                                <input type="email" name="author_email" id="ad_email" class="regular-text"
-                                       value="<?php echo esc_attr(
-                                           ads_get_field_value("author_email"),
-                                       ); ?>"
-                                       style="padding: 8px 12px;">
-                                <?php if (isset($errors["author_email"])): ?>
-                                    <p class="description" style="color:#dc3232; margin: 5px 0 0;"><?php echo esc_html(
-                                        $errors["author_email"],
-                                    ); ?></p>
-                                <?php endif; ?>
-                                <?php if (isset($errors["contacts"])): ?>
-                                    <p class="description" style="color:#dc3232; margin: 5px 0 0; font-weight: 500;">
-                                        <?php echo esc_html(
-                                            $errors["contacts"],
-                                        ); ?>
-                                    </p>
-                                <?php endif; ?>
-                                <p class="description" style="margin: 5px 0 0;">Укажите хотя бы телефон или email</p>
-                            </td>
-                        </tr>
-                    </table>
+                <!-- Описание -->
+                <div class="ads-form-section">
+                    <h3>Описание <span class="ads-required">*</span></h3>
+                    <div class="ads-form-field">
+                        <?php wp_editor(
+                            ads_get_field("description", ""),
+                            "ad_description",
+                            [
+                                "textarea_name" => "description",
+                                "textarea_rows" => 8,
+                                "media_buttons" => false,
+                                "teeny" => false,
+                                "quicktags" => [
+                                    "buttons" => "strong,em,ul,ol,li",
+                                ],
+                            ],
+                        ); ?>
+                        <?php if (isset($errors["description"])): ?>
+                            <span class="ads-field-error"><?php echo esc_html(
+                                $errors["description"],
+                            ); ?></span>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Публикация -->
-            <div class="postbox" style="margin-bottom: 20px;">
-                <h2 class="hndle" style="padding: 10px 15px;"><span>Публикация</span></h2>
-                <div class="inside" style="padding: 15px;">
-                    <table class="form-table" style="margin: 0;">
-                        <tr>
-                            <th scope="row" style="padding: 15px 10px 15px 0; width: 150px;">
-                                <label for="ad_category">Категория <span style="color:#dc3232">*</span></label>
-                            </th>
-                            <td style="padding: 15px 0;">
-                                <select name="category_id" id="ad_category" class="regular-text" required style="padding: 8px 12px; min-width: 250px;">
-                                    <option value="">— Выберите категорию —</option>
-                                    <?php foreach ($categories as $cat): ?>
-                                        <option value="<?php echo esc_attr(
+                <!-- Цена и контакты -->
+                <div class="ads-form-section">
+                    <h3>Цена и контакты</h3>
+
+                    <div class="ads-form-row">
+                        <div class="ads-form-field">
+                            <label for="ad_price">Цена ($)</label>
+                            <input type="number" name="price" id="ad_price" class="small-text" step="0.01" min="0"
+                                   value="<?php echo esc_attr(
+                                       ads_get_field("price", ""),
+                                   ); ?>"
+                                   placeholder="0.00">
+                            <?php if (isset($errors["price"])): ?>
+                                <span class="ads-field-error"><?php echo esc_html(
+                                    $errors["price"],
+                                ); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <div class="ads-form-field">
+                        <label for="ad_author">ФИО автора <span class="ads-required">*</span></label>
+                        <input type="text" name="author_name" id="ad_author" class="regular-text"
+                               value="<?php echo esc_attr(
+                                   ads_get_field("author_name"),
+                               ); ?>" required>
+                        <?php if (isset($errors["author_name"])): ?>
+                            <span class="ads-field-error"><?php echo esc_html(
+                                $errors["author_name"],
+                            ); ?></span>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="ads-form-row">
+                        <div class="ads-form-field">
+                            <label for="ad_phone">Телефон</label>
+                            <input type="tel" name="author_phone" id="ad_phone" class="regular-text"
+                                   value="<?php echo esc_attr(
+                                       ads_get_field("author_phone"),
+                                   ); ?>"
+                                   placeholder="+375 (29) 123-45-67">
+                            <?php if (isset($errors["author_phone"])): ?>
+                                <span class="ads-field-error"><?php echo esc_html(
+                                    $errors["author_phone"],
+                                ); ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="ads-form-field">
+                            <label for="ad_email">Email</label>
+                            <input type="email" name="author_email" id="ad_email" class="regular-text"
+                                   value="<?php echo esc_attr(
+                                       ads_get_field("author_email"),
+                                   ); ?>"
+                                   placeholder="email@example.com">
+                            <?php if (isset($errors["author_email"])): ?>
+                                <span class="ads-field-error"><?php echo esc_html(
+                                    $errors["author_email"],
+                                ); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php if (isset($errors["contacts"])): ?>
+                        <span class="ads-field-error"><?php echo esc_html(
+                            $errors["contacts"],
+                        ); ?></span>
+                    <?php endif; ?>
+                    <p class="ads-field-help">Укажите хотя бы телефон или email</p>
+                </div>
+
+                <!-- Публикация -->
+                <div class="ads-form-section">
+                    <h3>Публикация</h3>
+
+                    <div class="ads-form-field">
+                        <label for="ad_category">Категория <span class="ads-required">*</span></label>
+                        <select name="category_id" id="ad_category" class="regular-text" required>
+                            <option value="">— Выберите категорию —</option>
+                            <?php foreach ($categories as $cat): ?>
+                                <option value="<?php echo esc_attr(
+                                    $cat->id,
+                                ); ?>"
+                                        <?php selected(
+                                            ads_get_field("category_id"),
                                             $cat->id,
-                                        ); ?>"
-                                                <?php selected(
-                                                    ads_get_field_value(
-                                                        "category_id",
-                                                    ),
-                                                    $cat->id,
-                                                ); ?>>
-                                            <?php echo esc_html($cat->name); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <?php if (isset($errors["category_id"])): ?>
-                                    <p class="description" style="color:#dc3232; margin: 5px 0 0;"><?php echo esc_html(
-                                        $errors["category_id"],
-                                    ); ?></p>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row" style="padding: 15px 10px 15px 0;">
-                                <label for="ad_published">Дата публикации</label>
-                            </th>
-                            <td style="padding: 15px 0;">
-                                <input type="datetime-local" name="published_at" id="ad_published"
-                                       value="<?php
-                                       $val = ads_get_field_value(
-                                           "published_at",
-                                       );
-                                       echo $val
-                                           ? esc_attr(
-                                               date(
-                                                   "Y-m-d\TH:i",
-                                                   strtotime($val),
-                                               ),
-                                           )
-                                           : "";
-                                       ?>"
-                                       style="padding: 8px 12px;">
-                                <p class="description">Оставьте пустым для публикации сразу.</p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row" style="padding: 15px 10px 15px 0;">
-                                <label for="ad_expires">Дата окончания</label>
-                            </th>
-                            <td style="padding: 15px 0;">
-                                <input type="datetime-local" name="expires_at" id="ad_expires"
-                                       value="<?php
-                                       $val = ads_get_field_value("expires_at");
-                                       echo $val
-                                           ? esc_attr(
-                                               date(
-                                                   "Y-m-d\TH:i",
-                                                   strtotime($val),
-                                               ),
-                                           )
-                                           : "";
-                                       ?>"
-                                       style="padding: 8px 12px;">
-                                <?php if (isset($errors["expires_at"])): ?>
-                                    <p class="description" style="color:#dc3232; margin: 5px 0 0;"><?php echo esc_html(
-                                        $errors["expires_at"],
-                                    ); ?></p>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row" style="padding: 15px 10px 15px 0;">
-                                <label for="ad_status">Статус</label>
-                            </th>
-                            <td style="padding: 15px 0;">
-                                <select name="status" id="ad_status" style="padding: 8px 12px;">
-                                    <option value="draft" <?php selected(
-                                        ads_get_field_value("status", "draft"),
-                                        "draft",
-                                    ); ?>>
-                                        Черновик
-                                    </option>
-                                    <option value="active" <?php selected(
-                                        ads_get_field_value("status", "draft"),
-                                        "active",
-                                    ); ?>>
-                                        Опубликовано
-                                    </option>
-                                    <option value="sold" <?php selected(
-                                        ads_get_field_value("status", "draft"),
-                                        "sold",
-                                    ); ?>>
-                                        Продано
-                                    </option>
-                                </select>
-                            </td>
-                        </tr>
-                    </table>
+                                        ); ?>>
+                                    <?php echo esc_html($cat->name); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?php if (isset($errors["category_id"])): ?>
+                            <span class="ads-field-error"><?php echo esc_html(
+                                $errors["category_id"],
+                            ); ?></span>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="ads-form-row">
+                        <div class="ads-form-field">
+                            <label for="ad_published">Дата публикации</label>
+                            <input type="datetime-local" name="published_at" id="ad_published"
+                                   value="<?php
+                                   $val = ads_get_field("published_at");
+                                   echo $val
+                                       ? esc_attr(
+                                           date("Y-m-d\TH:i", strtotime($val)),
+                                       )
+                                       : "";
+                                   ?>">
+                            <p class="ads-field-help">Оставьте пустым для публикации сразу</p>
+                        </div>
+                        <div class="ads-form-field">
+                            <label for="ad_expires">Дата окончания</label>
+                            <input type="datetime-local" name="expires_at" id="ad_expires"
+                                   value="<?php
+                                   $val = ads_get_field("expires_at");
+                                   echo $val
+                                       ? esc_attr(
+                                           date("Y-m-d\TH:i", strtotime($val)),
+                                       )
+                                       : "";
+                                   ?>">
+                            <?php if (isset($errors["expires_at"])): ?>
+                                <span class="ads-field-error"><?php echo esc_html(
+                                    $errors["expires_at"],
+                                ); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <div class="ads-form-field">
+                        <label for="ad_status">Статус</label>
+                        <select name="status" id="ad_status" class="regular-text">
+                            <option value="draft" <?php selected(
+                                ads_get_field("status", "draft"),
+                                "draft",
+                            ); ?>>
+                                Черновик
+                            </option>
+                            <option value="active" <?php selected(
+                                ads_get_field("status", "draft"),
+                                "active",
+                            ); ?>>
+                                Опубликовано
+                            </option>
+                            <option value="sold" <?php selected(
+                                ads_get_field("status", "draft"),
+                                "sold",
+                            ); ?>>
+                                Продано
+                            </option>
+                        </select>
+                    </div>
                 </div>
+
             </div>
 
-        </div>
+            <!-- Правая колонка: галерея и настройки -->
+            <div class="ads-form-sidebar">
 
-        <!-- Галерея и настройки (сайдбар) -->
-        <div class="postbox-container" style="float: right; width: 28%;">
+                <!-- Галерея -->
+                <div class="ads-form-section ads-form-box">
+                    <h3>Изображения</h3>
 
-            <!-- Галерея -->
-            <div class="postbox" style="margin-bottom: 20px;">
-                <h2 class="hndle" style="padding: 10px 15px;"><span>Изображения</span></h2>
-                <div class="inside" style="padding: 15px;">
                     <?php if (!empty($gallery)): ?>
-                        <div class="ads-gallery" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px;">
+                        <div class="ads-gallery-preview">
                             <?php foreach ($gallery as $img): ?>
-                                <div class="ads-gallery-item" style="position: relative; border: 2px solid <?php echo $img[
-                                    "is_primary"
-                                ]
-                                    ? "#0073aa"
-                                    : "#ddd"; ?>; border-radius: 4px; overflow: hidden;">
+                                <div class="ads-gallery-item" data-id="<?php echo esc_attr(
+                                    $img["id"],
+                                ); ?>">
                                     <img src="<?php echo esc_url(
                                         home_url($img["file_path"]),
                                     ); ?>"
                                          alt="<?php echo esc_attr(
                                              $img["file_name"],
-                                         ); ?>"
-                                         style="width: 100%; height: 80px; object-fit: cover;">
-                                    <?php if ($img["is_primary"]): ?>
-                                        <span style="position: absolute; top: 5px; right: 5px; color: #f0ad4e; background: #fff; border-radius: 50%; padding: 2px; font-size: 14px;">★</span>
-                                    <?php endif; ?>
-                                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: #fff; font-size: 11px; padding: 3px;">
-                                        <button type="button" class="button button-small set-primary"
-                                                data-id="<?php echo esc_attr(
-                                                    $img["id"],
-                                                ); ?>"
-                                                style="<?php echo $img[
-                                                    "is_primary"
-                                                ]
-                                                    ? "display:none"
-                                                    : ""; ?>; width: 100%; border: none; background: transparent; color: #fff; cursor: pointer;">
-                                            Главное
-                                        </button>
+                                         ); ?>">
+                                    <div class="ads-gallery-actions">
+                                        <?php if (!$img["is_primary"]): ?>
+                                            <button type="button" class="ads-set-primary" title="Сделать главным">★</button>
+                                        <?php else: ?>
+                                            <span class="ads-is-primary" title="Главное изображение">★</span>
+                                        <?php endif; ?>
                                         <a href="<?php echo wp_nonce_url(
                                             admin_url(
                                                 "admin.php?page=ads-add-new&action=delete_image&img_id=" .
@@ -402,114 +326,80 @@ function ads_get_field_value($key, $default = "")
                                             ),
                                             "ads_items_nonce",
                                         ); ?>"
-                                           class="button button-small button-link-delete"
-                                           style="width: 100%; border: none; background: transparent; color: #fff; text-align: center;"
-                                           onclick="return confirm('Удалить изображение?');">
-                                            Удалить
-                                        </a>
+                                           class="ads-delete-image"
+                                           onclick="return confirm('Удалить изображение?');"
+                                           title="Удалить">×</a>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
 
-                    <div id="ads-upload-area" style="border: 2px dashed #ddd; padding: 20px; text-align: center; border-radius: 4px; cursor: pointer;">
-                        <input type="file" name="ad_images[]" id="ad_images" multiple accept="image/*" style="display: none;">
-                        <label for="ad_images" style="cursor: pointer; display: block;">
-                            <span style="font-size: 32px; color: #777; display: block; margin-bottom: 5px;">+</span>
-                            Добавить изображения
+                    <div class="ads-upload-area">
+                        <input type="file" name="ad_images[]" id="ad_images" multiple accept="image/*" hidden>
+                        <label for="ad_images" class="ads-upload-label">
+                            <span class="dashicons dashicons-plus-alt"></span>
+                            <span>Добавить фото</span>
                         </label>
-                        <p class="description" style="margin-top: 10px; font-size: 12px;">
-                            JPG, PNG, GIF, WebP. Макс. 5 МБ каждое.
-                        </p>
+                        <p class="ads-upload-help">JPG, PNG, GIF. Макс. 5 МБ каждое.</p>
                     </div>
-                    <div id="ads-upload-preview" style="margin-top: 10px;"></div>
+                    <div id="ads-upload-preview"></div>
                 </div>
-            </div>
 
-            <!-- Дополнительные настройки -->
-            <div class="postbox" style="margin-bottom: 20px;">
-                <h2 class="hndle" style="padding: 10px 15px;"><span>Настройки</span></h2>
-                <div class="inside" style="padding: 15px;">
-                    <label style="display: block; margin-bottom: 12px; padding: 8px 0;">
+                <!-- Дополнительные настройки -->
+                <div class="ads-form-section ads-form-box">
+                    <h3>Настройки</h3>
+
+                    <label class="ads-checkbox">
                         <input type="checkbox" name="is_pinned" value="1" <?php checked(
-                            ads_get_field_value("is_pinned"),
+                            ads_get_field("is_pinned"),
                             1,
-                        ); ?> style="margin-right: 8px;">
-                        <strong>Закрепить вверху списка</strong>
+                        ); ?>>
+                        <span>Закрепить вверху списка</span>
                     </label>
-                    <label style="display: block; margin-bottom: 12px; padding: 8px 0;">
+
+                    <label class="ads-checkbox">
                         <input type="checkbox" name="is_important" value="1" <?php checked(
-                            ads_get_field_value("is_important"),
+                            ads_get_field("is_important"),
                             1,
-                        ); ?> style="margin-right: 8px;">
-                        <strong>Отметить как важное</strong>
+                        ); ?>>
+                        <span>Отметить как важное</span>
                     </label>
                 </div>
-            </div>
 
-            <!-- Кнопки -->
-            <div id="major-publishing-actions" style="background: #fff; border-top: 1px solid #ddd; padding: 15px 20px; margin-top: 20px;">
-                <div id="publishing-action">
-                    <button type="submit" class="button button-primary button-large" style="padding: 10px 20px;">
-                        <?php echo $item ? "Обновить" : "Создать"; ?>
+                <!-- Кнопки -->
+                <div class="ads-form-actions">
+                    <button type="submit" class="button button-primary button-large" id="ads-submit-btn">
+                        <?php echo esc_html($submit_text); ?>
                     </button>
+                    <?php if ($is_edit): ?>
+                        <a href="<?php echo wp_nonce_url(
+                            admin_url(
+                                "admin.php?page=ads-board&action=delete&ad_id=" .
+                                    $item->id,
+                            ),
+                            "delete_ad_" . $item->id,
+                        ); ?>"
+                           class="button button-link-delete"
+                           onclick="return confirm('Удалить объявление?');"
+                           style="margin-top: 10px; display: block; text-align: center;">
+                            Удалить объявление
+                        </a>
+                    <?php endif; ?>
                 </div>
-                <div class="clear"></div>
-            </div>
 
+            </div>
         </div>
-        <div class="clear"></div>
     </form>
 </div>
 
-<!-- Скрипты -->
+<!-- Стили и скрипты -->
+<?php
+// Выводим инлайн-скрипты для простоты (можно вынести в ads-admin.js)
+?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Предпросмотр изображений
-    const fileInput = document.getElementById('ad_images');
-    const preview = document.getElementById('ads-upload-preview');
-
-    if (fileInput && preview) {
-        fileInput.addEventListener('change', function(e) {
-            preview.innerHTML = '';
-            Array.from(e.target.files).forEach(file => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(ev) {
-                        const div = document.createElement('div');
-                        div.style.cssText = 'display: inline-block; margin: 5px; border: 1px solid #ddd; padding: 5px; border-radius: 4px;';
-                        div.innerHTML = '<img src="' + ev.target.result + '" style="max-width: 100px; max-height: 80px; border-radius: 3px;"><br><small>' + file.name + '</small>';
-                        preview.appendChild(div);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        });
-    }
-
-    // Установка главного изображения
-    document.querySelectorAll('.set-primary').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const imgId = this.dataset.id;
-            const adId = <?php echo $item ? (int) $item->id : 0; ?>;
-
-            if (!adId) {
-                alert('Сначала сохраните объявление.');
-                return;
-            }
-
-            window.location.href = '<?php echo admin_url(
-                "admin.php?page=ads-add-new",
-            ); ?>' +
-                '&action=set_primary&img_id=' + imgId + '&ad_id=' + adId +
-                '&ads_items_nonce_field=<?php echo wp_create_nonce(
-                    "ads_items_nonce",
-                ); ?>';
-        });
-    });
-
-    // Автогенерация slug
+    // Автогенерация slug из заголовка
     const titleInput = document.getElementById('ad_title');
     const slugInput = document.getElementById('ad_slug');
 
@@ -526,37 +416,129 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Предпросмотр загружаемых изображений
+    const fileInput = document.getElementById('ad_images');
+    const preview = document.getElementById('ads-upload-preview');
+
+    if (fileInput && preview) {
+        fileInput.addEventListener('change', function(e) {
+            preview.innerHTML = '';
+            Array.from(e.target.files).slice(0, 10).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        const div = document.createElement('div');
+                        div.className = 'ads-gallery-item preview';
+                        div.innerHTML = '<img src="' + ev.target.result + '" alt="' + file.name + '">';
+                        preview.appendChild(div);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    }
+
+    // Установка главного изображения (через редирект)
+    document.querySelectorAll('.ads-set-primary').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const imgId = this.closest('.ads-gallery-item').dataset.id;
+            const adId = <?php echo $item ? (int) $item->id : 0; ?>;
+            if (!adId) { alert('Сначала сохраните объявление'); return; }
+            window.location.href = '<?php echo admin_url(
+                "admin.php?page=ads-add-new",
+            ); ?>' +
+                '&action=set_primary&img_id=' + imgId + '&ad_id=' + adId +
+                '&ads_items_nonce_field=<?php echo wp_create_nonce(
+                    "ads_items_nonce",
+                ); ?>';
+        });
+    });
+
+    // Валидация: хотя бы один контакт
+    const phone = document.getElementById('ad_phone');
+    const email = document.getElementById('ad_email');
+    const form = document.getElementById('ads-form');
+
+    if (phone && email && form) {
+        form.addEventListener('submit', function(e) {
+            if (!phone.value.trim() && !email.value.trim()) {
+                e.preventDefault();
+                alert('Укажите телефон или email');
+                phone.focus();
+            }
+        });
+    }
 });
 </script>
 
 <style>
-.ads-board-add-new .required { color: #dc3232; }
-.ads-board-add-new .ads-gallery-item:hover { border-color: #0073aa !important; }
-#ads-upload-area:hover { border-color: #0073aa; background: #f9f9f9; }
-.ads-board-add-new input[type="text"],
-.ads-board-add-new input[type="email"],
-.ads-board-add-new input[type="tel"],
-.ads-board-add-new input[type="number"],
-.ads-board-add-new select,
-.ads-board-add-new input[type="datetime-local"] {
-    padding: 8px 12px;
-    min-height: 36px;
+/* === Layout === */
+.ads-form-wrap { max-width: 1200px; margin: 20px auto; }
+.ads-form-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .ads-form-layout { grid-template-columns: 1fr; } }
+
+/* === Sections === */
+.ads-form-section { background: #fff; border: 1px solid #ccd0d4; border-radius: 4px; padding: 15px 20px; margin-bottom: 15px; }
+.ads-form-section h3 { margin: 0 0 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; font-size: 14px; font-weight: 600; color: #23282d; }
+.ads-form-box { border: 1px solid #c3c4c7; background: #f6f7f7; }
+.ads-form-box h3 { border-bottom-color: #c3c4c7; }
+
+/* === Fields === */
+.ads-form-field { margin-bottom: 15px; }
+.ads-form-field label { display: block; margin-bottom: 5px; font-weight: 500; color: #23282d; }
+.ads-form-field input[type="text"],
+.ads-form-field input[type="email"],
+.ads-form-field input[type="tel"],
+.ads-form-field input[type="number"],
+.ads-form-field select,
+.ads-form-field input[type="datetime-local"] {
+    width: 100%; padding: 8px 12px; border: 1px solid #7e8993; border-radius: 4px; font-size: 14px; box-sizing: border-box;
 }
-.ads-board-add-new .form-table th {
-    padding: 15px 10px 15px 0 !important;
-    width: 150px;
-    font-weight: 500;
+.ads-form-field input:focus, .ads-form-field select:focus { border-color: #007cba; box-shadow: 0 0 0 1px #007cba; outline: none; }
+.ads-form-field .ads-field-error { display: block; color: #d63638; font-size: 13px; margin-top: 4px; }
+.ads-form-field .ads-field-help { color: #646970; font-size: 12px; margin-top: 4px; }
+.ads-required { color: #d63638; }
+
+/* === Rows === */
+.ads-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+@media (max-width: 600px) { .ads-form-row { grid-template-columns: 1fr; } }
+
+/* === Gallery === */
+.ads-gallery-preview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
+.ads-gallery-item { position: relative; aspect-ratio: 1; border: 2px solid #ddd; border-radius: 4px; overflow: hidden; background: #f0f0f1; }
+.ads-gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+.ads-gallery-item.preview { border-style: dashed; }
+.ads-gallery-actions { position: absolute; top: 5px; right: 5px; display: flex; gap: 3px; }
+.ads-gallery-actions button, .ads-gallery-actions a {
+    width: 24px; height: 24px; border: none; border-radius: 50%; background: rgba(0,0,0,0.7); color: #fff;
+    font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none;
 }
-.ads-board-add-new .form-table td {
-    padding: 15px 0 !important;
-}
-.ads-board-add-new .inside {
-    padding: 15px !important;
-}
-.ads-board-add-new .hndle {
-    padding: 10px 15px !important;
-}
-@media screen and (max-width: 1200px) {
-    .postbox-container { float: none !important; width: 100% !important; }
-}
+.ads-gallery-actions button:hover, .ads-gallery-actions a:hover { background: #007cba; }
+.ads-is-primary { color: #f0ad4e; font-size: 16px; }
+
+/* === Upload === */
+.ads-upload-area { text-align: center; padding: 20px; border: 2px dashed #c3c4c7; border-radius: 4px; background: #fff; }
+.ads-upload-label { cursor: pointer; display: inline-flex; flex-direction: column; align-items: center; gap: 8px; color: #007cba; }
+.ads-upload-label:hover { color: #005a87; }
+.ads-upload-label .dashicons { font-size: 32px; width: 32px; height: 32px; }
+.ads-upload-help { font-size: 12px; color: #646970; margin-top: 8px; }
+
+/* === Checkboxes === */
+.ads-checkbox { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 14px; }
+.ads-checkbox input { margin: 0; }
+
+/* === Actions === */
+.ads-form-actions { position: sticky; bottom: 20px; background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; padding: 15px; text-align: center; z-index: 10; }
+.ads-form-actions .button-primary { padding: 10px 30px; font-size: 15px; }
+.ads-form-actions .button-link-delete { color: #d63638; text-decoration: none; }
+.ads-form-actions .button-link-delete:hover { color: #b32d2e; }
+
+/* === Editor === */
+#wp-ad_description-editor-container { border: 1px solid #7e8993 !important; border-radius: 4px; }
+#wp-ad_description-editor-container .mce-toolbar-grp { border-bottom-color: #c3c4c7 !important; }
+
+/* === Errors list === */
+.ads-error-list { margin: 10px 0 0 20px; padding: 0; list-style: disc; }
+.ads-error-list li { margin-bottom: 4px; font-size: 14px; }
 </style>
