@@ -42,6 +42,53 @@ function format_ad_date($datetime, $format)
     }
     return date_i18n($format, strtotime($datetime));
 }
+
+// Форматирование телефона: убираем дублирование плюса
+function format_phone_number($phone)
+{
+    if (empty($phone)) {
+        return "";
+    }
+
+    // Извлекаем только цифры
+    $digits = preg_replace("/[^\d]/", "", $phone);
+
+    // Форматируем под +375 (XX) XXX-XX-XX
+    if (strlen($digits) === 12) {
+        // Заменяем 8 в начале на 375
+        if (substr($digits, 0, 1) === "8") {
+            $digits = "375" . substr($digits, 1);
+        }
+
+        if (substr($digits, 0, 3) === "375") {
+            return "+375 (" .
+                substr($digits, 3, 2) .
+                ") " .
+                substr($digits, 5, 3) .
+                "-" .
+                substr($digits, 8, 2) .
+                "-" .
+                substr($digits, 10, 2);
+        }
+    }
+
+    // Фолбэк: возвращаем как есть, но с одним плюсом в начале если нужно
+    $clean = preg_replace("/[^\d+]/", "", $phone);
+    if (strpos($clean, "+") !== 0 && !empty($clean)) {
+        $clean = "+" . $clean;
+    }
+    return $clean;
+}
+
+// Генерация tel: ссылки (только цифры с одним плюсом)
+function get_tel_link($phone)
+{
+    if (empty($phone)) {
+        return "";
+    }
+    $digits = preg_replace("/[^\d]/", "", $phone);
+    return "tel:+" . $digits;
+}
 ?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
@@ -85,83 +132,6 @@ function format_ad_date($datetime, $format)
         }
         </script>
     <?php endif; ?>
-
-    <style>
-        /* === Base === */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background: #f6f7f7; color: #23282d; line-height: 1.5; }
-        a { color: #007cba; text-decoration: none; }
-        a:hover { color: #005a87; }
-        img { max-width: 100%; height: auto; display: block; }
-
-        /* === Container === */
-        .ads-board-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-
-        /* === Breadcrumbs === */
-        .ads-breadcrumbs { margin: 0 0 20px; font-size: 14px; color: #646970; }
-        .ads-breadcrumbs .separator { margin: 0 5px; color: #999; }
-        .ads-breadcrumbs .current { color: #23282d; font-weight: 500; }
-
-        /* === Unavailable Notice === */
-        .ads-unavailable { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 30px; text-align: center; margin: 40px 0; }
-        .ads-unavailable h1 { margin: 0 0 15px; font-size: 22px; }
-        .ads-unavailable p { color: #646970; margin: 0 0 20px; }
-        .ads-unavailable .button { background: #007cba; color: #fff; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
-
-        /* === Ad Layout === */
-        .ad-single { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
-        @media (max-width: 900px) { .ad-single { grid-template-columns: 1fr; } }
-
-        /* === Gallery === */
-        .ad-gallery { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
-        .ad-gallery-main { position: relative; aspect-ratio: 4/3; background: #f0f0f1; }
-        .ad-gallery-main img { width: 100%; height: 100%; object-fit: contain; }
-        .ad-gallery-nav { display: flex; gap: 5px; padding: 10px; background: #fff; overflow-x: auto; }
-        .ad-gallery-thumb { width: 60px; height: 60px; border: 2px solid transparent; border-radius: 4px; cursor: pointer; object-fit: cover; flex-shrink: 0; }
-        .ad-gallery-thumb.active, .ad-gallery-thumb:hover { border-color: #007cba; }
-        .ad-gallery-counter { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
-
-        /* === Ad Info === */
-        .ad-info { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-        .ad-title { margin: 0 0 10px; font-size: 24px; }
-        .ad-meta { display: flex; gap: 15px; color: #646970; font-size: 14px; margin-bottom: 15px; flex-wrap: wrap; }
-        .ad-meta span { display: flex; align-items: center; gap: 5px; }
-        .ad-price { font-size: 28px; font-weight: 600; color: #2e7d32; margin: 15px 0; }
-        .ad-description { color: #23282d; line-height: 1.6; }
-        .ad-description p { margin: 0 0 15px; }
-        .ad-description img { margin: 10px 0; border-radius: 4px; }
-
-        /* === Author Card === */
-        .ad-author { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; position: sticky; top: 20px; }
-        .ad-author h3 { margin: 0 0 15px; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .ad-author-info { margin-bottom: 15px; }
-        .ad-author-info p { margin: 8px 0; color: #646970; }
-        .ad-author-info strong { color: #23282d; }
-        .ad-contact-btn { display: block; width: 100%; padding: 12px; background: #007cba; color: #fff; border: none; border-radius: 4px; font-size: 15px; cursor: pointer; text-align: center; margin-bottom: 10px; }
-        .ad-contact-btn:hover { background: #005a87; }
-        .ad-contact-hidden { display: none; background: #f0f0f1; color: #23282d; font-weight: 500; }
-        .ad-share { margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; }
-        .ad-share p { margin: 0 0 10px; font-size: 14px; color: #646970; }
-        .ad-share-links { display: flex; gap: 10px; }
-        .ad-share-link { width: 36px; height: 36px; border-radius: 50%; background: #f0f0f1; display: flex; align-items: center; justify-content: center; color: #23282d; font-size: 16px; transition: background 0.2s; }
-        .ad-share-link:hover { background: #007cba; color: #fff; }
-
-        /* === Related Ads === */
-        .ad-related { margin-top: 40px; }
-        .ad-related h3 { margin: 0 0 15px; font-size: 20px; }
-        .ad-related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-        .ad-related-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
-        .ad-related-card img { width: 100%; height: 150px; object-fit: cover; }
-        .ad-related-card .content { padding: 12px; }
-        .ad-related-card .title { font-size: 14px; font-weight: 500; margin: 0 0 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .ad-related-card .price { color: #2e7d32; font-weight: 600; font-size: 16px; }
-
-        /* === Utilities === */
-        .text-muted { color: #646970; font-size: 13px; }
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
-        .badge-pinned { background: #007cba; color: #fff; }
-        .badge-important { background: #f0ad4e; color: #fff; }
-        .badge-sold { background: #dc3232; color: #fff; }
-    </style>
 </head>
 <body <?php body_class("ads-board-page ads-single-page"); ?>>
 
@@ -247,9 +217,7 @@ function format_ad_date($datetime, $format)
                         <?php endif; ?>
                     </div>
                 <?php else: ?>
-                    <div class="ad-gallery" style="background: #f0f0f1; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; color: #999; border-radius: 8px;">
-                        Нет изображений
-                    </div>
+                    <div class="ad-gallery-placeholder">Нет изображений</div>
                 <?php endif; ?>
 
                 <!-- Информация -->
@@ -268,12 +236,12 @@ function format_ad_date($datetime, $format)
                     </h1>
 
                     <div class="ad-meta">
-                        <span>📅 <?php echo format_ad_date(
+                        <span><?php echo format_ad_date(
                             $ad->created_at,
                             $date_format,
                         ); ?></span>
                         <?php if ($ad->category_name): ?>
-                            <span>📁 <a href="<?php echo esc_url(
+                            <span><a href="<?php echo esc_url(
                                 home_url(
                                     "/board/category/" .
                                         $ad->category_slug .
@@ -283,11 +251,11 @@ function format_ad_date($datetime, $format)
     $ad->category_name,
 ); ?></a></span>
                         <?php endif; ?>
-                        <span>👁 <?php echo number_format_i18n(
+                        <span><?php echo number_format_i18n(
                             $ad->views_count,
                         ); ?> просмотров</span>
                         <?php if ($ad->expires_at): ?>
-                            <span>⏰ До <?php echo date_i18n(
+                            <span>До <?php echo date_i18n(
                                 "d.m.Y",
                                 strtotime($ad->expires_at),
                             ); ?></span>
@@ -322,7 +290,7 @@ function format_ad_date($datetime, $format)
     $item->title,
 ); ?>">
                                     <?php else: ?>
-                                        <div style="height: 150px; background: #f0f0f1; display: flex; align-items: center; justify-content: center; color: #999;">Нет фото</div>
+                                        <div class="ad-related-no-image">Нет фото</div>
                                     <?php endif; ?>
                                     <div class="content">
                                         <p class="title"><?php echo esc_html(
@@ -353,17 +321,21 @@ function format_ad_date($datetime, $format)
                             <p><strong>Имя:</strong> <?php echo esc_html(
                                 $ad->author_name,
                             ); ?></p>
-                            <?php if ($ad->author_phone): ?>
+
+                            <?php if (!empty($ad->author_phone)): ?>
                                 <p><strong>Телефон:</strong>
-                                    <span id="ad-phone-display"><?php echo esc_html(
-                                        preg_replace(
-                                            "/(\d{3})(\d{2})(\d{2})(\d{2})/",
-                                            '+$1 ($2) $3-$4-$5',
-                                            $ad->author_phone,
-                                        ),
-                                    ); ?></span>
+                                    <a href="<?php echo esc_url(
+                                        get_tel_link($ad->author_phone),
+                                    ); ?>">
+                                        <?php echo esc_html(
+                                            format_phone_number(
+                                                $ad->author_phone,
+                                            ),
+                                        ); ?>
+                                    </a>
                                 </p>
                             <?php endif; ?>
+
                             <?php if ($ad->author_email): ?>
                                 <p><strong>Email:</strong> <a href="mailto:<?php echo esc_attr(
                                     $ad->author_email,
@@ -371,21 +343,12 @@ function format_ad_date($datetime, $format)
     $ad->author_email,
 ); ?></a></p>
                             <?php endif; ?>
+
                             <p class="text-muted">Размещено: <?php echo date_i18n(
                                 "d.m.Y H:i",
                                 strtotime($ad->created_at),
                             ); ?></p>
                         </div>
-
-                        <?php if ($ad->author_phone): ?>
-                            <button class="ad-contact-btn" id="ad-show-phone">Показать телефон</button>
-                            <a href="tel:<?php echo esc_attr(
-                                preg_replace("/[^\d+]/", "", $ad->author_phone),
-                            ); ?>"
-                               class="ad-contact-btn ad-contact-hidden" id="ad-phone-link">
-                                Позвонить
-                            </a>
-                        <?php endif; ?>
                     <?php else: ?>
                         <p class="text-muted">Контакты автора скрыты настройками сайта.</p>
                     <?php endif; ?>
@@ -401,7 +364,7 @@ function format_ad_date($datetime, $format)
                             <a href="https://twitter.com/intent/tweet?url=<?php echo urlencode(
                                 get_permalink(),
                             ); ?>&text=<?php echo urlencode($ad->title); ?>"
-                               target="_blank" rel="noopener" class="ad-share-link" title="Twitter" aria-label="Поделиться в Twitter">𝕏</a>
+                               target="_blank" rel="noopener" class="ad-share-link" title="Twitter" aria-label="Поделиться в Twitter">X</a>
                             <a href="https://t.me/share/url?url=<?php echo urlencode(
                                 get_permalink(),
                             ); ?>&text=<?php echo urlencode($ad->title); ?>"
@@ -422,11 +385,15 @@ function format_ad_date($datetime, $format)
 
 </div>
 
-<!-- Скрипты для галереи и контактов -->
-<?php if ($ad && !$is_unavailable): ?>
+<!-- Скрипты для галереи -->
+<?php if (
+    $ad &&
+    !$is_unavailable &&
+    !empty($gallery) &&
+    count($gallery) > 1
+): ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // === Галерея ===
     const mainImg = document.getElementById('ad-gallery-main');
     const thumbs = document.querySelectorAll('.ad-gallery-thumb');
     const counter = document.querySelector('.ad-gallery-counter');
@@ -434,22 +401,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if (mainImg && thumbs.length > 0) {
         thumbs.forEach(function(thumb) {
             thumb.addEventListener('click', function() {
-                // Обновляем главное изображение
                 mainImg.src = this.dataset.full;
                 mainImg.alt = this.alt;
 
-                // Обновляем активный класс
-                thumbs.forEach(t => t.classList.remove('active'));
+                thumbs.forEach(function(t) { t.classList.remove('active'); });
                 this.classList.add('active');
 
-                // Обновляем счётчик
                 if (counter) {
                     counter.textContent = (parseInt(this.dataset.index) + 1) + ' / ' + thumbs.length;
                 }
             });
         });
 
-        // Поддержка клавиатуры
         let currentIndex = 0;
         document.addEventListener('keydown', function(e) {
             if (e.key === 'ArrowLeft' && currentIndex > 0) {
@@ -458,25 +421,6 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (e.key === 'ArrowRight' && currentIndex < thumbs.length - 1) {
                 thumbs[currentIndex + 1].click();
                 currentIndex++;
-            }
-        });
-    }
-
-    // === Показать телефон ===
-    const showBtn = document.getElementById('ad-show-phone');
-    const phoneLink = document.getElementById('ad-phone-link');
-
-    if (showBtn && phoneLink) {
-        showBtn.addEventListener('click', function() {
-            showBtn.style.display = 'none';
-            phoneLink.style.display = 'block';
-
-            // Отправляем событие для аналитики (опционально)
-            if (typeof gtag === 'function') {
-                gtag('event', 'click', {
-                    'event_category': 'ad_contact',
-                    'event_label': 'phone_reveal'
-                });
             }
         });
     }
