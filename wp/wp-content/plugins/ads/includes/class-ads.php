@@ -32,12 +32,9 @@ class Ads
     }
     private function load_dependencies()
     {
-        require_once plugin_dir_path(dirname(__FILE__)) .
-            "includes/class-ads-loader.php";
-        require_once plugin_dir_path(dirname(__FILE__)) .
-            "admin/class-ads-admin.php";
-        require_once plugin_dir_path(dirname(__FILE__)) .
-            "public/class-ads-public.php";
+        require_once ADS_PLUGIN_DIR . "includes/class-ads-loader.php";
+        require_once ADS_PLUGIN_DIR . "admin/class-ads-admin.php";
+        require_once ADS_PLUGIN_DIR . "public/class-ads-public.php";
         $this->loader = new Ads_Loader();
     }
     private function define_admin_hooks()
@@ -57,6 +54,16 @@ class Ads
             $plugin_admin,
             "enqueue_scripts",
         );
+        $this->loader->add_action(
+            "admin_menu",
+            $plugin_admin,
+            "register_admin_menu",
+        );
+        // $this->loader->add_action(
+        //     "admin_init",
+        //     $plugin_admin,
+        //     "handle_categories_actions",
+        // );
     }
     private function define_public_hooks()
     {
@@ -74,6 +81,22 @@ class Ads
             "wp_enqueue_scripts",
             $plugin_public,
             "enqueue_scripts",
+        );
+
+        $this->loader->add_action("init", $plugin_public, "init_router", 1, 0);
+        $this->loader->add_filter(
+            "query_vars",
+            $plugin_public,
+            "add_query_vars",
+            10,
+            1,
+        );
+        $this->loader->add_action(
+            "template_redirect",
+            $plugin_public,
+            "template_redirect",
+            10,
+            0,
         );
     }
     public function run()
