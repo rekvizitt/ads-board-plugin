@@ -83,14 +83,6 @@ class Ads
             "enqueue_scripts",
         );
 
-        $this->loader->add_action("init", $plugin_public, "init_router", 1, 0);
-        $this->loader->add_filter(
-            "query_vars",
-            $plugin_public,
-            "add_query_vars",
-            10,
-            1,
-        );
         $this->loader->add_action(
             "template_redirect",
             $plugin_public,

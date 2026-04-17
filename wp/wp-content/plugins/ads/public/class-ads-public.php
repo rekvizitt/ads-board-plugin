@@ -46,20 +46,6 @@ class Ads_Public
             true,
         );
     }
-    public function init_router()
-    {
-        if ($this->router) {
-            $this->router->register();
-        }
-    }
-
-    public function add_query_vars($vars)
-    {
-        if ($this->router) {
-            return $this->router->register_query_vars($vars);
-        }
-        return $vars;
-    }
 
     public function template_redirect()
     {

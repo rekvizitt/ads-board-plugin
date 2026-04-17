@@ -6,25 +6,12 @@
  * @package Ads_Board
  * @subpackage Ads_Board/includes
  */
-
 if (!defined("ABSPATH")) {
     exit();
 }
 
 class Ads_Router
 {
-    // ✅ Простые правила без лишних скобок для начала
-    private $rules = [
-        'board/?$' => "index.php?ads_page=ads_archive",
-        'board/category/?$' => "index.php?ads_page=ads_categories_list",
-        'board/category/([^/]+)/?$' =>
-            'index.php?ads_page=ads_category&ads_category_slug=$matches[1]',
-        'board/ad/([^/]+)/?$' =>
-            'index.php?ads_page=ads_single&ads_ad_slug=$matches[1]',
-        'board/page/([0-9]+)/?$' =>
-            'index.php?ads_page=ads_archive&paged=$matches[1]',
-    ];
-
     private $template_map = [
         "ads_archive" => "archive-ads.php",
         "ads_categories_list" => "categories-list.php",
@@ -32,34 +19,72 @@ class Ads_Router
         "ads_single" => "single-ads.php",
     ];
 
-    public function register()
-    {
-        foreach ($this->rules as $regex => $redirect) {
-            // ✅ 'top' — чтобы наши правила имели приоритет
-            add_rewrite_rule($regex, $redirect, "top");
-        }
-    }
-
-    public function register_query_vars($vars)
-    {
-        $vars[] = "ads_page";
-        $vars[] = "ads_category_slug";
-        $vars[] = "ads_ad_slug";
-        return $vars;
-    }
-
+    /**
+     * Прямой парсинг URI без зависимости от rewrite rules
+     */
     public function handle_template_redirect()
     {
-        $page = get_query_var("ads_page");
-        if (!$page) {
+        // Если это уже админка или AJAX — не трогаем
+        if (is_admin() || wp_doing_ajax()) {
             return;
         }
 
-        global $wp_query;
-        $wp_query->is_404 = false;
-        status_header(200);
+        $uri = trim(parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH), "/");
+        $path_parts = explode("/", $uri);
 
-        $template = $this->template_map[$page] ?? null;
+        // /board/ или /board/page/2/
+        if ($path_parts[0] === "board") {
+            global $wp_query;
+            $wp_query->is_404 = false;
+            $wp_query->is_singular = true;
+            status_header(200);
+
+            // Пагинация
+            if (!empty($path_parts[2]) && is_numeric($path_parts[2])) {
+                set_query_var("paged", absint($path_parts[2]));
+            }
+
+            $this->load_template("ads_archive");
+            exit();
+        }
+
+        // /board/category/ или /board/category/{slug}/
+        if ($path_parts[0] === "board" && $path_parts[1] === "category") {
+            global $wp_query;
+            $wp_query->is_404 = false;
+            status_header(200);
+
+            set_query_var("ads_category_slug", $path_parts[2] ?? "");
+            $page = !empty($path_parts[2])
+                ? "ads_category"
+                : "ads_categories_list";
+            $this->load_template($page);
+            exit();
+        }
+
+        // /board/ad/{slug}/
+        if (
+            $path_parts[0] === "board" &&
+            $path_parts[1] === "ad" &&
+            !empty($path_parts[2])
+        ) {
+            global $wp_query;
+            $wp_query->is_404 = false;
+            $wp_query->is_singular = true;
+            status_header(200);
+
+            set_query_var("ads_ad_slug", sanitize_title($path_parts[2]));
+            $this->load_template("ads_single");
+            exit();
+        }
+    }
+
+    /**
+     * Загрузка шаблона с проверкой существования
+     */
+    private function load_template($page_key)
+    {
+        $template = $this->template_map[$page_key] ?? null;
         $path = ADS_PLUGIN_DIR . "public/templates/" . $template;
 
         if (!$template || !file_exists($path)) {
@@ -68,12 +93,21 @@ class Ads_Router
         }
 
         include $path;
-        exit();
     }
 
+    /**
+     * (Опционально) Оставляем для совместимости, но не используем
+     */
+    public function register_rewrite_rules() {}
+    public function register_query_vars($vars)
+    {
+        $vars[] = "ads_page";
+        $vars[] = "ads_category_slug";
+        $vars[] = "ads_ad_slug";
+        return $vars;
+    }
     public function flush()
     {
-        $this->register();
         flush_rewrite_rules();
     }
 }
